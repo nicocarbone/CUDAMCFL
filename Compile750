@@ -1,0 +1,1 @@
+nvcc -o cuda_fl CUDAMCFLmain.cu --ptxas-options=-v -prec-div=false --optimize=3 --use_fast_math --disable-warnings --gpu-architecture=compute_50 --gpu-code=sm_50

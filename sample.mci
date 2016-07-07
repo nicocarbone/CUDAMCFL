@@ -1,0 +1,30 @@
+##########################################
+# sample.mci
+# 	A template for input files for CUDAMCML_INC.
+#	Any characters following a # are ignored as comments
+#	Space lines are also ignored.
+#	Lengths are in cm, mua and mus are in 1/cm.
+#
+#	Multiple runs may be stipulated.
+##########################################
+
+1.0                      	# file version
+1                          	# number of runs
+
+#### SPECIFY DATA FOR RUN 1
+#InParm                    	# Input parameters. cm is used.
+sample-out.dat 	A	      	# output file name, ASCII.
+100000000                  	# No. of photons
+0.01	0.01	0.01              	# dx, dy, dz [cm]
+500	500	500      	       	# No. of dx, dy, dz.
+0				# Separacion detector - eje optico, para banana
+#5				# Size of the detector
+
+1                        	# Number of layers
+#n	mua	mus 	flc AbsCExi AbsCEmi eY	g	d         	# One line for each layer
+1                         	# n for medium above
+1.346 0.071 47.25 10e-9 339625. 219500. 0.043 0.8 5.  # layer 1
+1                        	# n for medium below
+#1						          	# Number of inclusions
+#x y z r n mua mus fl AbsCExi AbsCEmi eY g            	# One line per inclusion
+0. 2.1 1.5 0.35 1.346 0.071 47.25 50e-9 339625 219500 0.043 0.8

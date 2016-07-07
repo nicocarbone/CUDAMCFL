@@ -1,0 +1,1 @@
+nvcc -arch sm_11 -deviceemu -o cuda_fl_cpu CUDAMCFLmain.cu --ptxas-options=-v
