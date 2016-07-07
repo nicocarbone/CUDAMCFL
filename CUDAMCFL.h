@@ -99,15 +99,14 @@ typedef struct
 {
 								unsigned long long number_of_photons; // Number of photons to be simulated
 								unsigned int number_of_photons_per_voxel; // Number of photons to be simulated per voxel
-								int ignoreAdetection;
 								unsigned int n_layers; // Number of layers of the medium
 								unsigned int start_weight; // Photon weight at start
 
 								char outp_filename[STR_LEN]; // Output filename
 								char inp_filename[STR_LEN]; // Input filename
 
-								long begin,end;
-								char AorB;
+								long begin,end; // Input file delimitators
+								char AorB; 	// Output ASCII or Binary selector
 
 								DetStruct det; // Detector structure
 								LayerStruct* layers; // Layers structure

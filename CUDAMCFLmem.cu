@@ -44,10 +44,6 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 int InitDCMem(SimulationStruct* sim)
 {
 	unsigned int temp=0xFFFFFFFF;
-	// Copy ignoreAdetection to constant device memory
-	if(sim->ignoreAdetection) temp=0;
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(ignoreAdetection_dc,&temp,sizeof(unsigned int)) );
-
 	// Copy fhd flag
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int)) );
 

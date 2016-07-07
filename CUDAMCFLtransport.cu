@@ -169,10 +169,6 @@ __global__ void MCd(MemStruct DeviceMem)
 			}
 		}
 
-		w = w&(*ignoreAdetection_dc); //this will set w to 0 if user has specified to ignore detection of absorbed weight
-
-		//if(w!=0u) AtomicAddULL(&DeviceMem.A_xyz[index], w);
-
 		if(!PhotonSurvive(&p,&x,&a)) // Check if photons survives or not
 		{
 			if(atomicAdd(DeviceMem.num_terminated_photons,1ULL) < (*num_photons_dc-NUM_THREADS)) {

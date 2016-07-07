@@ -271,11 +271,6 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		// Echo the Filename
 		//printf("Input filename: %s\n",filename);
 
-		// Store ignoreAdetection data
-		(*simulations)[i].ignoreAdetection=ignoreAdetection;
-
-		// Accumulate fhd
-		//(*simulations)[i].fhd_activated = 1;
 		// Read the output filename and determine ASCII or Binary output
 		ii=0;
 		while(ii<=0)
@@ -290,8 +285,6 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		//printf("Output filename: %s, AorB=%c\n",str,AorB);
 		strcpy((*simulations)[i].outp_filename,str);
 		(*simulations)[i].AorB=AorB;
-
-		//printf("begin=%d\n",(*simulations)[i].begin);
 
 		// Read the number of photons
 		ii=0;
