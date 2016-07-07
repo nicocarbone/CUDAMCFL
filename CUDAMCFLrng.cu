@@ -1,11 +1,11 @@
-/*	This file is part of CUDAMCML_INC.
+/*	This file is part of CUDAMCFL.
 
-    CUDAMCML_INC is free software: you can redistribute it and/or modify
+    CUDAMCFL is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    CUDAMCML_INC is distributed in the hope that it will be useful,
+    CUDAMCFL is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -27,19 +27,19 @@ __device__ float rand_MWC_oc(unsigned long long* x,unsigned int* a)
 		return 1.0f-rand_MWC_co(x,a);
 }//end __device__ rand_MWC_oc
 
-int init_RNG(unsigned long long *x, unsigned int *a, 
+int init_RNG(unsigned long long *x, unsigned int *a,
             const unsigned int n_rng, const char *safeprimes_file, unsigned long long xinit)
 {
     FILE *fp;
     unsigned int begin=0u;
 	unsigned int fora,tmp1,tmp2;
-    
+
     if (strlen(safeprimes_file) == 0)
     {
         // Try to find it in the local directory
         safeprimes_file = "safeprimes_base32.txt";
     }
-    
+
     fp = fopen(safeprimes_file, "r");
 
 	if(fp == NULL)

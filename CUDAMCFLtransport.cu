@@ -1,11 +1,11 @@
-/*	This file is part of CUDAMCML_INC for fluorescence
+/*	This file is part of CUDAMCFL.
 
-    CUDAMCML_INC is free software: you can redistribute it and/or modify
+    CUDAMCFL is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    CUDAMCML_INC is distributed in the hope that it will be useful,
+    CUDAMCFL is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -205,7 +205,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
     p->x  = *xi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
   	p->y  = *yi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
     p->z  = *zi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
-    
+
     float costheta = 1.0 - 2.0*rand_MWC_oc(x,a);
 	  float sintheta = sqrt(1.0 - costheta*costheta);
 	  float psi = 2.0*PI*rand_MWC_oc(x,a);
