@@ -372,8 +372,8 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 			if(!readfloats(9, ftemp, pFile)){perror ("Error reading layer data");return 0;}
 			//printf("n=%f, mua=%f, mus=%f, flc=%e, AbsCExi=%f, AbsCEmi=%f, eY=%f, g=%f, d=%f\n\n",ftemp[0],ftemp[1],ftemp[2],ftemp[3],ftemp[4],ftemp[5],ftemp[6],ftemp[7],ftemp[8]);
 			(*simulations)[i].layers[ii].n=ftemp[0];
-			(*simulations)[i].layers[ii].mua=ftemp[1] + ftemp[3] * ftemp[4];
-			(*simulations)[i].layers[ii].muaf=ftemp[1] + ftemp[3] * ftemp[5];
+			(*simulations)[i].layers[ii].mua=ftemp[1] + ftemp[3] * ftemp[4]; //mua + flc*AbsCExi
+			(*simulations)[i].layers[ii].muaf=ftemp[1] + ftemp[3] * ftemp[5]; //mua + flc*AbsCEmi
 			(*simulations)[i].layers[ii].eY=ftemp[6];
 			(*simulations)[i].layers[ii].flc=ftemp[3];
 			(*simulations)[i].layers[ii].g=ftemp[7];
@@ -382,7 +382,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 			(*simulations)[i].layers[ii].z_max=dtot;
 			if(ftemp[2]==0.0f)(*simulations)[i].layers[ii].mutr=FLT_MAX; //Glass layer
 				else(*simulations)[i].layers[ii].mutr=1.0f/(ftemp[1]+ftemp[2]);
-			(*simulations)[i].layers[ii].albedof =  ftemp[2]/(ftemp[3]*ftemp[5] + ftemp[2]);
+			(*simulations)[i].layers[ii].albedof =  ftemp[2]/(ftemp[3]*ftemp[4] + ftemp[2]); //mus/(flc*AbsCExi + mus)
 			printf("Layer %i\n n=%f\n mua=%f\n muaf=%f\n eY=%f\n flc=%e\n g=%f\n z_min=%f\n z_max=%f\n albedof=%f\n AbsCExi=%f\n AbsCEmi=%f\n\n", ii,
 						(*simulations)[i].layers[ii].n,
 						(*simulations)[i].layers[ii].mua,
@@ -419,15 +419,15 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		(*simulations)[i].inclusion.z=ftemp[2];
 		(*simulations)[i].inclusion.r=ftemp[3];
 		(*simulations)[i].inclusion.n=ftemp[4];
-		(*simulations)[i].inclusion.mua=ftemp[5] + ftemp[7] * ftemp[8];
-		(*simulations)[i].inclusion.muaf=ftemp[5] + ftemp[7] * ftemp[9];
+		(*simulations)[i].inclusion.mua=ftemp[5] + ftemp[7] * ftemp[8];  //mua + flc*AbsCExi
+		(*simulations)[i].inclusion.muaf=ftemp[5] + ftemp[7] * ftemp[9]; //mua + flc*AbsCEmi
 		(*simulations)[i].inclusion.flc=ftemp[7];
 		(*simulations)[i].inclusion.eY=ftemp[10];
 		(*simulations)[i].inclusion.g=ftemp[11];
 		if(ftemp[6]==0.0f)(*simulations)[i].inclusion.mutr=FLT_MAX; //Inclusion with mus=0
 		else(*simulations)[i].inclusion.mutr=1.0f/(ftemp[5]+ftemp[6]);
 
-		(*simulations)[i].inclusion.albedof =  ftemp[6]/(ftemp[7]*ftemp[9] + ftemp[6]);
+		(*simulations)[i].inclusion.albedof =  ftemp[6]/(ftemp[7]*ftemp[8] + ftemp[6]); //mus/(flc*AbsExi + mus)
 		printf("Inclusion\n x=%f \n y=%f\n z=%f\n r=%f\n n=%f\n mua=%f\n muaf=%f\n flc=%e\n eY=%f\n g=%f\n albedof=%f\n AbsCExi=%f\n AbsCEmi=%f\n\n",
 					(*simulations)[i].inclusion.x,
 					(*simulations)[i].inclusion.y,
