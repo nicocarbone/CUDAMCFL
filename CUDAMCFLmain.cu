@@ -220,6 +220,8 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
 
 int main(int argc, char *argv[]) {
 
+  printf ("CUDAMCFL. Compilation date: %s, %s. \n\n", __DATE__, __TIME__);
+
   clock_t time0 = clock();
   SimulationStruct *simulations;
   int n_simulations;

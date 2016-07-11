@@ -87,6 +87,7 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 
 	// Write other stuff here first!
 
+	fprintf(paramFile_out,"Compilation date: %s, %s. \n\n", __DATE__, __TIME__);
 	fprintf(paramFile_out,"A1 	# Version number of the file format.\n\n");
 	fprintf(paramFile_out,"####\n");
 	fprintf(paramFile_out,"# Data categories include: \n");
