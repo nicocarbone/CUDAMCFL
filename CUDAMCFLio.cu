@@ -13,8 +13,8 @@
     You should have received a copy of the GNU General Public License
     along with CUDAMCML_INC.  If not, see <http://www.gnu.org/licenses/>.*/
 
-#define NFLOATS 12
-#define NINTS 5
+#define NFLOATS 12 // Max number of floats per line
+#define NINTS 5 // Max number of integeres per line
 
 #include <stdio.h>
 #include <math.h>
