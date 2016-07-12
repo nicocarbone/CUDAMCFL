@@ -118,7 +118,6 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
   CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->a,NUM_THREADS*sizeof(unsigned int)));
   CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->a,HostMem->a,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
 
-
 	// Allocate thread_active on the device and host
 	HostMem->thread_active = (unsigned int*) malloc(NUM_THREADS*sizeof(unsigned int));
 	if(HostMem->thread_active==NULL){printf("Error allocating HostMem->thread_active"); exit (1);}
@@ -126,7 +125,6 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 
 	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->thread_active,NUM_THREADS*sizeof(unsigned int)) );
 	CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->thread_active,HostMem->thread_active,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
-
 
 	//Allocate num_launched_photons on the device and host
 	HostMem->num_terminated_photons = (unsigned long long*) malloc(sizeof(unsigned long long));
