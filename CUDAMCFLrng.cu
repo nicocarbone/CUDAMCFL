@@ -11,7 +11,8 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CUDAMCML_INC.  If not, see <http://www.gnu.org/licenses/>.*/
+    along with CUDAMCFL. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 __device__ float rand_MWC_co(unsigned long long* x,unsigned int* a)
 {

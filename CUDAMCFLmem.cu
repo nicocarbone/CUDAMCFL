@@ -11,7 +11,8 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CUDAMCML_INC.  If not, see <http://www.gnu.org/licenses/>.*/
+    along with CUDAMCFL.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim)
 { //Copy data from Device to Host memory
@@ -20,15 +21,11 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
-	//int banana_size = max_x*max_z+max_z;
-	//const int fhd_size = num_x+num_x*(num_y+num_y*num_z);// x + HEIGHT* (y + WIDTH* z) //TODO: More efficient space usage
 	const int fhd_size = num_x * num_y * num_z;
-	//int xyz_size = sim->det.nx*sim->det.ny*sim->det.nz;
 
 	//Copy Rd_xy, Tt_xy and A_xyz
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->Rd_xy,DeviceMem->Rd_xy,xy_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->Tt_xy,DeviceMem->Tt_xy,xy_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
-
 
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->fhd,DeviceMem->fhd,fhd_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
@@ -87,7 +84,6 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
-	//const int fhd_size = num_x+num_x*(num_y+num_y*num_z);////x + HEIGHT* (y + WIDTH* z)//TODO: more efficient space usage
 	const int fhd_size = num_x * num_y * num_z;
 
 	// Allocate p on the device

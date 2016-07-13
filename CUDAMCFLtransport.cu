@@ -11,7 +11,8 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CUDAMCML_INC.  If not, see <http://www.gnu.org/licenses/>.*/
+    along with CUDAMCFL.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 // forward declaration of the device code
 __global__ void MCd(MemStruct);
