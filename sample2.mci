@@ -1,6 +1,7 @@
 ##########################################
-# sample.mci
+# sample2.mci
 # 	A template for input files for CUDAMCFL.
+# Version for bulk described by 3D matrix
 #	Any characters following a # are ignored as comments
 #	Space lines are also ignored.
 #	Lengths are in cm, mua and mus are in 1/cm.
@@ -11,6 +12,7 @@
 1                                                                           	# number of runs TODO: not functional yet
 
 #### SPECIFY DATA FOR RUN 1
+3Dbulk-sample                                                                 # name of external 3D matrix describing the medium. Ignored if method 1
 #InParm                    	                                                  # Input parameters. cm is used.
 2                                                                             # Bulk description method. 1: single spherical inclusion in homogeneous medium, 2: 3D matrix with bulk descriptors
 sample-out 	A	      	                                                        # output file name, ASCII
@@ -19,13 +21,12 @@ sample-out 	A	      	                                                        # o
 1                                                                             # Do fluorescence simulation? 0: no, 1: do reflectance fl sim, 2: do transmitance fl sim
 0.04	0.04              	                                                    # Image dx, dy
 250	250      	       	                                                        # Image No. of dx, dy
--4 0 0                                                                     # Source position x y z
+-4 0 0                                                                        # Source position x y z
 
-1                        	                                                    # Number of layers
-#n	mua	mus 	flc AbsCExi AbsCEmi eY	g	d         	                          # One line for each layer
+2                        	                                                    # Number of bulk descriptors
+5.       #Bulk thickness
+#n	mua	mus 	flc AbsCExi AbsCEmi eY	g      	                                # One line for each descriptor
 1                         	                                                  # n for medium above
-1.33 0.04 48 10e-9 339625. 219500. 0.043 0.8 5.                               # layer 1
+1.33 0.04 48 10e-9 339625. 219500. 0.043 0.8                                  # layer 1
+1.33 0.08 48 50e-9 339625  219500  0.043 0.8
 1                        	                                                    # n for medium below
-#1						          	                                                    # Number of inclusions TODO
-#x y z r n mua mus fl AbsCExi AbsCEmi eY g            	                      # One line per inclusion
--1.9 0. 1.35 0.595 1.33 0.08 48 50e-9 339625 219500 0.043 0.8
