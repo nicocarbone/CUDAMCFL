@@ -16,12 +16,13 @@
 
 // forward declaration of the device code
 __global__ void MCd(MemStruct);
+__global__ void MCd3D(MemStruct);
 __device__ float rand_MWC_oc(unsigned long long*,unsigned int*);
 __device__ float rand_MWC_co(unsigned long long*,unsigned int*);
 __device__ void LaunchPhoton(PhotonStruct*,unsigned long long*, unsigned int*, MemStruct);
 __global__ void LaunchPhoton_Global(MemStruct);
 __device__ void Spin(PhotonStruct*, float,unsigned long long*,unsigned int*);
-__device__ unsigned int Reflect(PhotonStruct*, int, unsigned long long*, unsigned int*);
+__device__ unsigned int Reflect(PhotonStruct*, int, unsigned long long*, unsigned int*, int);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, unsigned long long*, unsigned int*);
 //__device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 
@@ -120,7 +121,7 @@ __global__ void MCd(MemStruct DeviceMem)
 		if(new_layer!=p.layer) {
 			// set the remaining step length to 0
 			s = 0.0f;
-      if(Reflect(&p,new_layer,&x,&a)==0u) {
+      if(Reflect(&p,new_layer,&x,&a,1)==0u) {
         // Photon is transmitted
 				if(new_layer == 0){
           // Diffuse reflectance
@@ -193,8 +194,152 @@ __global__ void MCd(MemStruct DeviceMem)
 }//end MCd
 
 
+__global__ void MCd3D(MemStruct DeviceMem)
+{
+  //Block index
+  int bx=blockIdx.x;
+
+  //Thread index
+  int tx=threadIdx.x;
+
+  //First element processed by the block
+  int begin=NUM_THREADS_PER_BLOCK*bx;
+
+	//const float esp=layers_dc[(*n_layers_dc)].z_max;
+	const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
+  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
+  //const unsigned int num_z = __float2uint_rn(esp*(double)TAM_GRILLA);
+  const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
+  const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
+
+  unsigned long long int x=DeviceMem.x[begin+tx];//coherent
+	unsigned int a=DeviceMem.a[begin+tx];//coherent
+
+	float s;	// step length
+	int index; // temporal variable to store indexes to arrays
+	unsigned int w; // photon weight
+
+	PhotonStruct p = DeviceMem.p[begin+tx];
+
+	int new_bulk; // int storing bulk descriptor of current position
+
+	//First, make sure the thread (photon) is active
+	unsigned int ii = 0;
+	if(!DeviceMem.thread_active[begin+tx]) ii = NUMSTEPS_GPU;
+
+	for(;ii<NUMSTEPS_GPU;ii++) {
+
+
+
+    //this is the main while loop
+  	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX)
+			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+		else
+			s = 100.0f;//temporary, say the step in glass is 100 cm.
+
+
+		//Check for layer transitions and in case, calculate s
+		new_bulk = p.bulkpos;
+
+
+    //Check for upwards reflection/transmission & calculate new s
+		if(p.z+s*p.dz<0) {
+      s = -1.;
+      }
+
+    //Check for downward reflection/transmission
+		if(p.z+s*p.dz>=*esp_dc){
+      s = 0.;
+    }
+
+    //Move photon
+    p.x += p.dx*s;
+		p.y += p.dy*s;
+		p.z += p.dz*s;
+
+    index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+           __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+
+    //Accumulate foton hitting density
+    //if (*fhd_activated_dc == 1){
+    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){ //Inside space of fhd
+        //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+      p.bulkpos = bulk_info_dc[index];
+      if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+    }
+    else p.bulkpos = 0;
+
+
+		if(new_bulk!=p.bulkpos) {
+			// set the remaining step length to 0
+			//s = 0.0f;
+      if(Reflect(&p,new_bulk,&x,&a,2)==0u) {
+        // Photon is transmitted
+				if(p.z <= 0.){
+          // Diffuse reflectance
+			    if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
+               // Inside detector
+               // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+               index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+                      __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+					     if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
+					}
+          p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+        }
+
+        if(p.z > *esp_dc) {
+          // Transmitted
+					if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
+             // Inside detector
+						 // Calculates the position in the exit matrix
+             // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+             index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+                    __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+             if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
+					}
+					p.weight = 0; // Set the remaining weight to 0, killing the photon
+        }
+			}
+		}
+
+		w=0;
+
+		if(s > 0.0f) {
+			// Drop weight (apparently only when the photon is scattered)
+			w = __float2uint_rn(bulks_dc[p.bulkpos].mua*bulks_dc[p.bulkpos].mutr*__uint2float_rn(p.weight));
+			p.weight -= w;//__int_as_float(data.w);
+				Spin(&p,bulks_dc[p.bulkpos].g,&x,&a);
+		}
+
+		if(!PhotonSurvive(&p,&x,&a)) // Check if photons survives or not
+		{
+			if(atomicAdd(DeviceMem.num_terminated_photons,1ULL) < (*num_photons_dc-NUM_THREADS)) {
+        // Ok to launch another photon
+				LaunchPhoton(&p,&x,&a, DeviceMem);//Launch a new photon
+      }
+			else {
+        // No more photons should be launched.
+				DeviceMem.thread_active[begin+tx] = 0u; // Set thread to inactive
+				ii = NUMSTEPS_GPU;				// Exit main loop
+			}
+
+		}
+	}//end main for loop!
+	__syncthreads();//necessary?
+
+	//save the state of the MC simulation in global memory before exiting
+	DeviceMem.p[begin+tx] = p;	//This one is incoherent!!!
+	DeviceMem.x[begin+tx] = x; //this one also seems to be coherent
+
+}//end MCd3D
+
+
+
 __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned int* a, MemStruct DeviceMem)
 {
+
+  const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
+  const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
   if (*dir_dc == 0.0f) {
     // Isotropic source, random position in voxel size
@@ -219,6 +364,14 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 	  p->dz = costheta;
 
     p->weight = 0xFFFFFFFF; // no specular reflection (Initial weight: max int32)
+    if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
+        //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+      int index=__float2uint_rz(__fdividef(p->y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+               __float2uint_rz(__fdividef(p->x+size_x,det_dc[0].dx));
+      p->bulkpos = bulk_info_dc[index];
+    }
+
+
   }
   else {
     // Colimated source
@@ -322,19 +475,26 @@ __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned i
 }// end Spin
 
 
-__device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long long* x, unsigned int* a)
+__device__ unsigned int Reflect(PhotonStruct* p, int newlb, unsigned long long* x, unsigned int* a, int bulk_method)
 {
 	// Calculates whether the photon is reflected (returns 1) or not (returns 0)
 	// Reflect() will also update the current photon layer (after transmission) and photon direction (both transmission and reflection)
-
-	float n1 = layers_dc[p->layer].n;
-	float n2 = layers_dc[new_layer].n;
+  float n1, n2;
+  if (bulk_method==1){
+	  n1 = layers_dc[p->layer].n;
+	  n2 = layers_dc[newlb].n;
+  }
+  else if (bulk_method==2){
+    n1 = bulks_dc[p->bulkpos].n;
+    n2 = bulks_dc[newlb].n;
+  }
 	float r;
 	float cos_angle_i = fabsf(p->dz);
 
 	if(n1==n2)//refraction index matching automatic transmission and no direction change
 	{
-		p->layer = new_layer;
+		p->layer = newlb;
+    p->bulkpos = newlb;
 		return 0u;
 	}
 
@@ -355,7 +515,8 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 		}
 		else
 		{	//transmission, no direction change but layer change
-			p->layer = new_layer;
+			p->layer = newlb;
+      p->bulkpos = newlb;
 			return 0u;
 		}
 	}
@@ -381,7 +542,8 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 		p->dx *= r;
 		p->dy *= r;
 		p->dz = copysignf(sqrtf(1-e) ,p->dz);
-		p->layer = new_layer;
+		p->layer = newlb;
+    p->bulkpos = newlb;
 		return 0u;
 	}
 

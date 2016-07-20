@@ -41,8 +41,15 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 int InitDCMem(SimulationStruct* sim)
 {
 	unsigned int temp=0xFFFFFFFF;
+	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
+	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
+	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
+	const int fhd_size = num_x * num_y * num_z;
 	// Copy fhd flag
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int)) );
+
+	// Copy bulk method flag
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_method_dc,&(sim->bulk_method),sizeof(unsigned int)) );
 
 	// Copy det-data to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(det_dc,&(sim->det),sizeof(DetStruct)) );
@@ -53,11 +60,20 @@ int InitDCMem(SimulationStruct* sim)
 	// Copy number of layers to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(n_layers_dc,&(sim->n_layers),sizeof(unsigned int)));
 
+	// Copy number of bulk descriptors to constant device memory
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(n_bulks_dc,&(sim->n_bulks),sizeof(unsigned int)));
+
 	// Copy start_weight_dc to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(start_weight_dc,&(sim->start_weight),sizeof(unsigned int)));
 
 	// Copy layer data to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct)) );
+
+	// Copy bulk data to constant device memory
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulks_dc,sim->bulks,(sim->n_bulks+1)*sizeof(BulkStruct)) );
+
+	// Copy bulk matrix to constant device memory
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_info_dc,sim->bulk_info,fhd_size*sizeof(short)) );
 
 	// Copy num_photons_dc to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(num_photons_dc,&(sim->number_of_photons),sizeof(unsigned long long)));

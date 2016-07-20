@@ -29,12 +29,16 @@
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
+__device__ __constant__ unsigned int n_bulks_dc[1];
+__device__ __constant__ short *bulk_info_dc;
 __device__ __constant__ unsigned int start_weight_dc[1];
 __device__ __constant__ LayerStruct layers_dc[MAX_LAYERS];
+__device__ __constant__ BulkStruct bulks_dc[MAX_LAYERS];
 __device__ __constant__ DetStruct det_dc[1];
 __device__ __constant__ IncStruct inclusion_dc[1];
 __device__ __constant__ unsigned int ignoreAdetection_dc[1];
 __device__ __constant__ unsigned int fhd_activated_dc[1];
+__device__ __constant__ unsigned int bulk_method_dc[1];
 __device__ __constant__ float xi_dc[1];
 __device__ __constant__ float yi_dc[1];
 __device__ __constant__ float zi_dc[1];
@@ -88,7 +92,11 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   while (threads_active_total > 0) {
     i++;
     // run the kernel
-    MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+    if (simulation->bulk_method == 1)
+      MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+    else if (simulation->bulk_method == 2)
+      MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
     cudastat = cudaGetLastError();           // Check if there was an error
     if (cudastat)
@@ -179,7 +187,11 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
     i++;
     watchdog++;
     // run the kernel
-    MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+    if (simulation->bulk_method == 1)
+      MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+    else if (simulation->bulk_method == 2)
+      MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
     cudastat = cudaGetLastError();           // Check if there was an error
     if (cudastat)
@@ -385,6 +397,9 @@ int main(int argc, char *argv[]) {
           if (ix == 0 && iy == 0 && iz == 0)
             time1 = clock(); // For the first xyz voxel, take first timestamp
 
+          int index = ix + num_x * (iy + iz * num_y);
+          short bulkdescriptor = simulations[0].bulk_info[index];
+
           // Set source position
           xi = (ix / (float)TAM_GRILLA) - 2* simulations[0].esp;
           yi = (iy / (float)TAM_GRILLA) - 2* simulations[0].esp;
@@ -412,28 +427,36 @@ int main(int argc, char *argv[]) {
           unsigned long long voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempret);
 
           // Check if inside inclusion and calculate scale value accordingly
-          if ((xi - simulations[0].inclusion.x) *
-                      (xi - simulations[0].inclusion.x) +
+          if (simulations[0].bulk_method == 1){
+            if ((xi - simulations[0].inclusion.x) *
+                        (xi - simulations[0].inclusion.x) +
                   (yi - simulations[0].inclusion.y) *
                       (yi - simulations[0].inclusion.y) +
                   (zi - simulations[0].inclusion.z) *
                       (zi - simulations[0].inclusion.z) <
                 simulations[0].inclusion.r * simulations[0].inclusion.r) {
-          // voxel inside inclusion
-            voxelw = ((double)simulations[0].inclusion.eY *
+            // voxel inside inclusion
+              voxelw = ((double)simulations[0].inclusion.eY *
                     (double)(1 - simulations[0].inclusion.albedof) *
-                    Fx[ix + num_x * (iy + iz * num_y)]) /
+                    Fx[index]) /
                     (double)(voxel_status * 0xFFFFFFFF);
-            voxel_inside++;
-          } else {
+              voxel_inside++;
+            } else {
             // voxel ouside inclusion
-            voxelw = ((double)simulations[0].layers[nl].eY *
+              voxelw = ((double)simulations[0].layers[nl].eY *
                     (double)(1 - simulations[0].layers[nl].albedof) *
-                    Fx[ix + num_x * (iy + iz * num_y)]) /
+                    Fx[index]) /
                     (double)(voxel_status * 0xFFFFFFFF);
-            voxel_outside++;
+              voxel_outside++;
+            }
           }
 
+          if (simulations[0].bulk_method == 2){
+            voxelw = ((double)simulations[0].bulks[index].eY *
+                  (double)(1 - simulations[0].bulks[index].albedof) *
+                  Fx[index]) /
+                  (double)(voxel_status * 0xFFFFFFFF);
+            }
 
           if (voxel_status == 0) {
             printf("Voxel %f, %f, %f failed.\n", xi,yi,zi);
