@@ -32,8 +32,6 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 	//Also copy the state of the RNG's
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->x,DeviceMem->x,NUM_THREADS*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
-	//CUDA_SAFE_CALL( cudaMemcpy(HostMem->last_func,DeviceMem->last_func,sizeof(unsigned short),cudaMemcpyDeviceToHost) );
-
 	return 0;
 }
 
