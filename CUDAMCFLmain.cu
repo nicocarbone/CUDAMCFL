@@ -30,7 +30,6 @@
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
 __device__ __constant__ unsigned int n_bulks_dc[1];
-__device__ __constant__ short *bulk_info_dc;
 __device__ __constant__ unsigned int start_weight_dc[1];
 __device__ __constant__ LayerStruct layers_dc[MAX_LAYERS];
 __device__ __constant__ BulkStruct bulks_dc[MAX_LAYERS];
@@ -40,6 +39,7 @@ __device__ __constant__ unsigned int ignoreAdetection_dc[1];
 __device__ __constant__ unsigned int fhd_activated_dc[1];
 __device__ __constant__ unsigned int bulk_method_dc[1];
 __device__ __constant__ float xi_dc[1];
+//__device__ short *bulk_info_dc;
 __device__ __constant__ float yi_dc[1];
 __device__ __constant__ float zi_dc[1];
 __device__ __constant__ float dir_dc[1];
@@ -92,10 +92,12 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   while (threads_active_total > 0) {
     i++;
     // run the kernel
-    if (simulation->bulk_method == 1)
+    if (simulation->bulk_method == 1){
       MCd<<<dimGrid, dimBlock>>>(DeviceMem);
-    else if (simulation->bulk_method == 2)
+    }
+    else if (simulation->bulk_method == 2) {
       MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+    }
 
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
     cudastat = cudaGetLastError();           // Check if there was an error
@@ -187,10 +189,12 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
     i++;
     watchdog++;
     // run the kernel
-    if (simulation->bulk_method == 1)
+    if (simulation->bulk_method == 1){
       MCd<<<dimGrid, dimBlock>>>(DeviceMem);
-    else if (simulation->bulk_method == 2)
+    }
+    else if (simulation->bulk_method == 2) {
       MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+    }
 
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
     cudastat = cudaGetLastError();           // Check if there was an error
@@ -272,7 +276,6 @@ int main(int argc, char *argv[]) {
     printf("Read %d simulations\n\n", n_simulations);
   }
 
-  printf("Running FHD simulation...\n");
 
   // Allocate memory for RNG's
   unsigned long long x[NUM_THREADS];
@@ -294,6 +297,7 @@ int main(int argc, char *argv[]) {
   // for(i=0;i<n_simulations;i++)
   //{
   // Run a simulation
+  printf("Running FHD simulation...\n");
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);

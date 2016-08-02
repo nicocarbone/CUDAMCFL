@@ -22,9 +22,10 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <float.h>
-#include <string.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <string.h>
 
 int interpret_arg(int argc, char* argv[], unsigned long long* seed, int* ignoreAdetection)
 {
@@ -312,6 +313,9 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		if(!readints(2, itemp, pFile)){perror ("Error reading No. of dx, dy and dz");return 0;}
 		(*simulations)[i].det.nx=itemp[0];
 		(*simulations)[i].det.ny=itemp[1];
+		printf("Detector geometry= %i x %f, %i x %f. \n\n",(*simulations)[i].det.nx,(*simulations)[i].det.dx,
+			(*simulations)[i].det.ny,(*simulations)[i].det.dy);
+
 
 		// Read source position (3x float)
 		if(!readfloats(3, ftemp, pFile)){perror ("Error source position");return 0;}
@@ -367,7 +371,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 				);
 			}//end ii<n_layers
 
-			// Calculate total hickness
+			// Calculate total thickness
 			printf("Thickness=%f\n\n",dtot);
 			(*simulations)[i].esp=dtot;
 
@@ -415,112 +419,154 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		start_weight = (unsigned int)((double)0xFFFFFFFF*(1-r));
 		(*simulations)[i].start_weight=start_weight;
 
-		}
+		// Dummy bulks malloc so cudaMemcpy doesn't fail.
+		(*simulations)[i].bulks = (BulkStruct*) malloc(sizeof(BulkStruct));
+		if((*simulations)[i].bulks == NULL){perror("Failed to malloc bulk descriptors.\n");return 0;}
 
-		else if ((*simulations)[i].bulk_method==2){
+	} // If bulk_method = 1
 
-			// Read No. of bulk descriptors (1x int)
-			if(!readints(1, itemp, pFile)){perror ("Error reading No. of bulk descriptors");return 0;}
-			printf("No. of bulkdescriptors=%d\n\n",itemp[0]);
-			n_bulks = itemp[0];
-			(*simulations)[i].n_bulks = itemp[0];
+	else if ((*simulations)[i].bulk_method==2){
 
-			// Allocate memory for the bulks
-			(*simulations)[i].bulks = (BulkStruct*) malloc(sizeof(BulkStruct)*(n_bulks));
-			if((*simulations)[i].bulks == NULL){perror("Failed to malloc bulk descriptors.\n");return 0;}
+		// Read No. of bulk descriptors (1x int)
+		if(!readints(1, itemp, pFile)){perror ("Error reading No. of bulk descriptors");return 0;}
+		printf("No. of bulkdescriptors=%d\n\n",itemp[0]);
+		n_bulks = itemp[0];
+		(*simulations)[i].n_bulks = itemp[0];
 
-			if(!readfloats(1, ftemp, pFile)){perror ("Error bulk thickness");return 0;}
-			(*simulations)[i].esp=ftemp[0];
-			printf("Thickness=%f\n\n",(*simulations)[i].esp);
+		// Allocate memory for the bulks
+		(*simulations)[i].bulks = (BulkStruct*) malloc(sizeof(BulkStruct)*(n_bulks+2));
+		if((*simulations)[i].bulks == NULL){perror("Failed to malloc bulk descriptors.\n");return 0;}
 
-			// Read upper refractive index (1x float)
-			if(!readfloats(1, ftemp, pFile)){perror ("Error reading upper refractive index");return 0;}
-			printf("Upper refractive index=%f\n\n",ftemp[0]);
-			//(*simulations)[i].n_up=ftemp[0];
-			(*simulations)[i].bulks[0].n=ftemp[0];
+		if(!readfloats(1, ftemp, pFile)){perror ("Error bulk thickness");return 0;}
+		(*simulations)[i].esp=ftemp[0];
+		printf("Thickness=%f\n\n",(*simulations)[i].esp);
 
-			dtot=0;
-			for(ii=1;ii<=n_bulks;ii++)	{
-				// Read Layer data (9x float)
-				if(!readfloats(8, ftemp, pFile)){perror ("Error reading bulk descriptors data");return 0;}
-				(*simulations)[i].bulks[ii].n=ftemp[0];
-				(*simulations)[i].bulks[ii].mua=ftemp[1] + ftemp[3] * ftemp[4]; //mua + flc*AbsCExi
-				(*simulations)[i].bulks[ii].muaf=ftemp[1] + ftemp[3] * ftemp[5]; //mua + flc*AbsCEmi
-				(*simulations)[i].bulks[ii].eY=ftemp[6];
-				(*simulations)[i].bulks[ii].flc=ftemp[3];
-				(*simulations)[i].bulks[ii].g=ftemp[7];
-				if(ftemp[2]==0.0f)(*simulations)[i].bulks[ii].mutr=FLT_MAX; //Glass
-				else(*simulations)[i].bulks[ii].mutr=1.0f/(ftemp[1]+ftemp[2]);
-				(*simulations)[i].bulks[ii].albedof =  ftemp[2]/(ftemp[3]*ftemp[4] + ftemp[2]); //mus/(flc*AbsCExi + mus)
-				printf("Bulk desc. %i\n n=%f\n mua=%f\n muaf=%f\n eY=%f\n flc=%e\n g=%f\n albedof=%f\n AbsCExi=%f\n AbsCEmi=%f\n\n", ii,
-					(*simulations)[i].bulks[ii].n,
-					(*simulations)[i].bulks[ii].mua,
-					(*simulations)[i].bulks[ii].muaf,
-					(*simulations)[i].bulks[ii].eY,
-					(*simulations)[i].bulks[ii].flc,
-					(*simulations)[i].bulks[ii].g,
-					(*simulations)[i].bulks[ii].albedof,
-					ftemp[4],
-					ftemp[5]
-				);
-			}//end ii<n_bulks
+		// Read upper refractive index (1x float)
+		if(!readfloats(1, ftemp, pFile)){perror ("Error reading upper refractive index");return 0;}
+		printf("Upper refractive index=%f\n\n",ftemp[0]);
+		//(*simulations)[i].n_up=ftemp[0];
+		(*simulations)[i].bulks[0].n=ftemp[0];
+		(*simulations)[i].bulks[0].mua=0.; //mua + flc*AbsCExi
+		(*simulations)[i].bulks[0].muaf=0.; //mua + flc*AbsCEmi
+		(*simulations)[i].bulks[0].eY=0.;
+		(*simulations)[i].bulks[0].flc=0.;
+		(*simulations)[i].bulks[0].g=1.;
+		(*simulations)[i].bulks[0].mutr=FLT_MAX; //Glass
+		(*simulations)[i].bulks[0].albedof = 0.; //mus/(flc*AbsCExi + mus)
 
-			// Read upper refractive index (1x float)
-			if(!readfloats(1, ftemp, pFile)){perror ("Error reading lower refractive index");return 0;}
-			printf("Upper refractive index=%f\n\n",ftemp[0]);
-			(*simulations)[i].n_down=ftemp[0];
+		for(ii=1;ii<=n_bulks;ii++)	{
+			// Read Layer data (9x float)
+			if(!readfloats(8, ftemp, pFile)){perror ("Error reading bulk descriptors data");return 0;}
+			(*simulations)[i].bulks[ii].n=ftemp[0];
+			(*simulations)[i].bulks[ii].mua=ftemp[1] + ftemp[3] * ftemp[4]; //mua + flc*AbsCExi
+			(*simulations)[i].bulks[ii].muaf=ftemp[1] + ftemp[3] * ftemp[5]; //mua + flc*AbsCEmi
+			(*simulations)[i].bulks[ii].eY=ftemp[6];
+			(*simulations)[i].bulks[ii].flc=ftemp[3];
+			(*simulations)[i].bulks[ii].g=ftemp[7];
+			if(ftemp[2]==0.0f)(*simulations)[i].bulks[ii].mutr=FLT_MAX; //Glass
+			else(*simulations)[i].bulks[ii].mutr=1.0f/(ftemp[1]+ftemp[2]);
+			(*simulations)[i].bulks[ii].albedof =  ftemp[2]/(ftemp[3]*ftemp[4] + ftemp[2]); //mus/(flc*AbsCExi + mus)
+			printf("Bulk desc. %i\n n=%f\n mua=%f\n muaf=%f\n mutr=%f\n eY=%f\n flc=%e\n g=%f\n albedof=%f\n AbsCExi=%f\n AbsCEmi=%f\n\n", ii,
+				(*simulations)[i].bulks[ii].n,
+				(*simulations)[i].bulks[ii].mua,
+				(*simulations)[i].bulks[ii].muaf,
+				(*simulations)[i].bulks[ii].mutr,
+				(*simulations)[i].bulks[ii].eY,
+				(*simulations)[i].bulks[ii].flc,
+				(*simulations)[i].bulks[ii].g,
+				(*simulations)[i].bulks[ii].albedof,
+				ftemp[4],
+				ftemp[5]
+			);
+		}//end ii<n_bulks
 
-			// If method 2, read 3D matrix
-			if (itemp[0] == 2) {
-				read3dmatrix = 1;
-				//Read matrix filename
-				ii=0;
-				while(ii<=0)
-				{
-					fgets (mystring , STR_LEN , pFile);
-					ii=sscanf(mystring,"%s",strbulk);
-					if(feof(pFile)|| ii>2){perror("Error bulk matrix filename");return 0;}
-					if(ii>0)ii=ischar(strbulk[0]);
-				}
+		// Read Lower refractive index (1x float)
+		if(!readfloats(1, ftemp, pFile)){perror ("Error reading lower refractive index");return 0;}
+		printf("Lower refractive index=%f\n\n",ftemp[0]);
+		(*simulations)[i].bulks[n_bulks+1].n=ftemp[0];
+		(*simulations)[i].bulks[n_bulks+1].mua=0.; //mua + flc*AbsCExi
+		(*simulations)[i].bulks[n_bulks+1].muaf=0.; //mua + flc*AbsCEmi
+		(*simulations)[i].bulks[n_bulks+1].eY=0.;
+		(*simulations)[i].bulks[n_bulks+1].flc=0.;
+		(*simulations)[i].bulks[n_bulks+1].g=1.;
+		(*simulations)[i].bulks[n_bulks+1].mutr=FLT_MAX; //Glass
+		(*simulations)[i].bulks[n_bulks+1].albedof = 0.; //mus/(flc*AbsCExi + mus)
 
-				strcpy((*simulations)[i].bulkinfo_filename,strbulk);
-
-				// Read matrix
-				const int num_x=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
-				const int num_y=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
-				const int num_z=(int)(((*simulations)[i].esp)*(double)TAM_GRILLA);
-				const int fhd_size = num_x * num_y * num_z;
-
-				int nintsfile;
-				std::ifstream bulkFile;
-	    	bulkFile.open(strbulk);
-				bulkFile >> nintsfile;
-				if (nintsfile == fhd_size){
-					for(int n = 0; n < nintsfile; n++) {
-	        	bulkFile >> (*simulations)[i].bulk_info[n];
-	    		}
-					bulkFile.close();
-				}
-				else {}//TODO: exit with error
+		//Read matrix filename
+		ii=0;
+		while(ii<=0){
+			fgets (mystring , STR_LEN , pFile);
+			ii=sscanf(mystring,"%s",strbulk);
+			printf("%s, %i\n", strbulk, ii);
+			if(ii>1){perror("Error bulk matrix filename");return 0;}
+			//ii=ischar(strbulk[0]);
 			}
 
-			// Calculate start_weight
-			double n1=(*simulations)[i].bulks[0].n;
-			double n2=(*simulations)[i].bulks[1].n;
-			double r = (n1-n2)/(n1+n2);
-			r = r*r;
-			printf ("r = %f\n\n",r);
-			start_weight = (unsigned int)((double)0xFFFFFFFF*(1-r));
-			(*simulations)[i].start_weight=start_weight;
+		strcpy((*simulations)[i].bulkinfo_filename,strbulk);
 
+
+		// Read matrix
+		const int num_x=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
+		const int num_y=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
+		const int num_z=(int)(((*simulations)[i].esp)*(double)TAM_GRILLA);
+		const int fhd_size = num_x * num_y * num_z;
+
+		// Allocate memory for the bulks
+		(*simulations)[i].bulk_info = (short*) malloc(sizeof(short)*(fhd_size));
+		if((*simulations)[i].bulk_info == NULL){perror("Failed to malloc bulk descriptors.\n");return 0;}
+
+		/*
+		int nintsfile;
+		std::ifstream bulkFile;
+	  bulkFile.open(strbulk);
+		bulkFile >> nintsfile;
+		printf("Number of voxels of bulk descritor file: %i\n", nintsfile);
+		if (nintsfile == fhd_size){
+			for(int n = 0; n < nintsfile; n++) {
+	    	bulkFile >> (*simulations)[i].bulk_info[n];
+	    	}
+			bulkFile.close();
+			}
+		else {}//TODO: exit with error
+		*/
+		std::string line;
+		std::ifstream infile(strbulk);
+
+		int read_count = 0;
+		while (std::getline(infile, line)) {
+			std::istringstream iss(line);
+  		char c;
+  		while (iss >> c) {
+				read_count++;
+    		int value = c - '0';
+				if (read_count <= fhd_size) {
+					(*simulations)[i].bulk_info[read_count] = value;
+					//printf("%i", value);
+				}
+  		}
 		}
-		// Set default to direcional photons
-		(*simulations)[i].dir=1.0;
+		printf("Number of voxels of bulk descritor file: %i\n", read_count);
 
-		(*simulations)[i].end=ftell(pFile);
+		if (read_count != fhd_size) printf ("Error reading 3D bulk file: size mismatch.\n");
 
+		// Calculate start_weight
+		double n1=(*simulations)[i].bulks[0].n;
+		double n2=(*simulations)[i].bulks[1].n;
+		double r = (n1-n2)/(n1+n2);
+		r = r*r;
+		printf ("r = %f\n\n",r);
+		start_weight = (unsigned int)((double)0xFFFFFFFF*(1-r));
+		(*simulations)[i].start_weight=start_weight;
 
+		// Dummy layers malloc so cudaMemcpy doesn't fail.
+		(*simulations)[i].layers = (LayerStruct*) malloc(sizeof(LayerStruct));
+		if((*simulations)[i].layers == NULL){perror("Failed to malloc layers.\n");return 0;}//{printf("Failed to malloc simulations.\n");return 0;}
 
+	} // If bulk_method = 2
+
+	// Set default to direcional photons
+	(*simulations)[i].dir=1.0;
+	(*simulations)[i].end=ftell(pFile);
 	}//end for i<n_simulations
 	return n_simulations;
 }

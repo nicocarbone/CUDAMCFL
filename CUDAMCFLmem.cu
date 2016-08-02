@@ -40,11 +40,12 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 
 int InitDCMem(SimulationStruct* sim)
 {
-	unsigned int temp=0xFFFFFFFF;
+	const unsigned int temp=0xFFFFFFFF;
 	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
 	const int fhd_size = num_x * num_y * num_z;
+
 	// Copy fhd flag
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int)) );
 
@@ -70,10 +71,13 @@ int InitDCMem(SimulationStruct* sim)
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct)) );
 
 	// Copy bulk data to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulks_dc,sim->bulks,(sim->n_bulks+1)*sizeof(BulkStruct)) );
-
+	//CUDA_SAFE_CALL( cudaMalloc((void**)&bulks_dc,(sim->n_bulks+1)*sizeof(BulkStruct)) );
+	//printf("InitMem\n");
+	//printf("%i\n", sim->bulks);
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulks_dc,sim->bulks,(sim->n_bulks+2)*sizeof(BulkStruct)) );
 	// Copy bulk matrix to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_info_dc,sim->bulk_info,fhd_size*sizeof(short)) );
+	//CUDA_SAFE_CALL( cudaMalloc((void**)&bulk_info_dc,fhd_size*sizeof(short)) );
+	//CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_info_dc,sim->bulk_info,fhd_size*sizeof(short)) );
 
 	// Copy num_photons_dc to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(num_photons_dc,&(sim->number_of_photons),sizeof(unsigned long long)));
@@ -88,6 +92,7 @@ int InitDCMem(SimulationStruct* sim)
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(dir_dc,&(sim->dir),sizeof(float)));
 	// Copy esp to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(esp_dc,&(sim->esp),sizeof(float)));
+	printf("esp=%f\n\n", *esp_dc);
 
 	return 0;
 
@@ -129,6 +134,13 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 
   CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->a,NUM_THREADS*sizeof(unsigned int)));
   CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->a,HostMem->a,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
+
+	//CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->bulks_dc,(sim->n_bulks+1)*sizeof(BulkStruct)));
+	//CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->bulks_dc,sim->bulks,(sim->n_bulks+1)*sizeof(BulkStruct), cudaMemcpyHostToDevice ));
+
+	CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->bulk_info,fhd_size*sizeof(short)));
+	CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->bulk_info,sim->bulk_info,fhd_size*sizeof(short), cudaMemcpyHostToDevice ));
+
 
 	// Allocate thread_active on the device and host
 	HostMem->thread_active = (unsigned int*) malloc(NUM_THREADS*sizeof(unsigned int));
