@@ -12,10 +12,9 @@
 1                                                                           	# number of runs TODO: not functional yet
 
 #### SPECIFY DATA FOR RUN 1
-3Dbulk-sample                                                                 # name of external 3D matrix describing the medium. Ignored if method 1
 #InParm                    	                                                  # Input parameters. cm is used.
 2                                                                             # Bulk description method. 1: single spherical inclusion in homogeneous medium, 2: 3D matrix with bulk descriptors
-sample-out 	A	      	                                                        # output file name, ASCII
+sample2-out 	A	      	                                                        # output file name, ASCII
 5000000000                  	                                                # No. of photons
 40000                                                                         # No. of photons per voxel (fluorescence)
 1                                                                             # Do fluorescence simulation? 0: no, 1: do reflectance fl sim, 2: do transmitance fl sim
@@ -30,3 +29,4 @@ sample-out 	A	      	                                                        # o
 1.33 0.04 48 10e-9 339625. 219500. 0.043 0.8                                  # layer 1
 1.33 0.08 48 50e-9 339625  219500  0.043 0.8
 1                        	                                                    # n for medium below
+3Dbulk-sample                                                                 # name of external 3D matrix describing the medium. Ignored if method 1
