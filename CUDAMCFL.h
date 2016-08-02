@@ -11,7 +11,8 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CUDAMCML_INC.  If not, see <http://www.gnu.org/licenses/>.*/
+    along with CUDAMCFL.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 // DEFINES
 #define NUM_THREADS_PER_BLOCK 256 //128 //512 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
@@ -43,7 +44,7 @@ typedef struct __align__ (16)
 								float g; // Anisotropy factor [-]
 								float n; // Refractive index [-]
 
-								float flc; //Fluorophore concentration (Molar)
+								float flc; // Fluorophore concentration (Molar)
 								float muaf; // Absorption coefficient at fluorescent wavelength[1/cm]
 								float eY; // Energy yield	of fluorophore
 								float albedof; // Albedo at emission wavelength
@@ -61,6 +62,7 @@ typedef struct __align__ (16)
 
 								unsigned int weight; // Photon weight
 								int layer; // Current layer
+								short bulkpos; // Current bulk descriptor
 								unsigned int step; // Step actual
 } PhotonStruct;
 
@@ -72,9 +74,9 @@ typedef struct __align__ (16)
 
 								int nx; // Number of grid elements in x-direction
 								int ny; // Number of grid elements in y-direction
-								int nz; // Number of grid elements in z-direction
+								int nz; // Number of grid elements in z-direction TODO: why?
 
-								float sep; // Separacion fibra de detaccion - eje optico
+								float sep; // Separacion fibra de detaccion - eje optico TODO: remove.
 } DetStruct;
 
 typedef struct //__align__(16)
@@ -95,11 +97,25 @@ typedef struct //__align__(16)
 								float albedof; // Albedo at emission wavelength
 }IncStruct;
 
+typedef struct //__align__(16)
+{
+								float mutr; // Mu_total reciproco de la inclusion
+								float mua; // Absorption coefficient of the inclusion at excitation wavelength
+								float g; // Anisotropy coefficient
+								float n; // Refractive index
+
+								float flc; // Fluorophore concentration (Molar)
+								float muaf; // Absorption coefficient of the inclusion at emission wavelength
+								float eY; // Energy yield
+								float albedof; // Albedo at emission wavelength
+}BulkStruct;
+
 typedef struct
 {
 								unsigned long long number_of_photons; // Number of photons to be simulated
 								unsigned int number_of_photons_per_voxel; // Number of photons to be simulated per voxel
 								unsigned int n_layers; // Number of layers of the medium
+								unsigned int n_bulks; // Number of bulk descriptors
 								unsigned int start_weight; // Photon weight at start
 
 								char outp_filename[STR_LEN]; // Output filename
@@ -110,6 +126,7 @@ typedef struct
 
 								DetStruct det; // Detector structure
 								LayerStruct* layers; // Layers structure
+								BulkStruct* bulks; // Bulk descriptors
 								IncStruct inclusion; // Inclusion structure
 
 								float esp; // Medium thickness
@@ -119,8 +136,16 @@ typedef struct
 								float zi; // Source z position
 								float dir; // Source type: 0 isotropic, 1 colimated
 
+								//float n_up;
+								float n_down;
+
 								int fhd_activated; //0: not accumulate fhd, 1: accumulate fhd
                 int do_fl_sim; //0: don't do fluorescence simulation, 1: do fluorescence simulation
+								int bulk_method; // 1: single inclusion with spherical inclusion, 2: 3D described bulkd
+
+								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
+
+								char bulkinfo_filename[STR_LEN]; // external fila containing the bulk information for method 2
 
 }SimulationStruct;
 
@@ -139,4 +164,8 @@ typedef struct
 								unsigned long long* Rd_xy; // Matriz 2D for reflexion
 								unsigned long long* Tt_xy; // Matriz 2D for transmission
 								unsigned long long* fhd; // 3D Matrix for the foton hitting density, ULL because 32-bit float does not have enough precision.
+
+								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
+
+
 }MemStruct;
