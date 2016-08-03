@@ -257,51 +257,48 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		p.y += p.dy*s;
 		p.z += p.dz*s;
 
-    // Index of the current voxel
-    // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-    index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-              + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-              + num_y * __float2uint_rz((p.z)*__int2float_rn(TAM_GRILLA)));
-
     //Accumulate foton hitting density
-    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<=(*esp_dc) && p.z>=0){ // Inside space of 3D matrix
+    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc) && p.z>=0){ // Inside space of 3D matrix
+      // Index of the current voxel
+      // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+      index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
+                + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
+                + num_y * __float2uint_rz((p.z)*__int2float_rn(TAM_GRILLA)));
       new_bulk = DeviceMem.bulk_info[index];
       if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
     }
     else {
       // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
-      new_bulk = 1;
+      new_bulk = 0;
     }
 
-    int reflected;
+    unsigned int reflected;
 
 		if(new_bulk != p.bulkpos) {
       // If changing voxel do Reflect
       reflected = Reflect(&p,new_bulk,&x,&a,2);
     }
 
-    if(p.z <= 0. && reflected==0u){
-      // Photon is transmitted - reflectance
-      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
-        // Inside detector
-        // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-        index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+    if(p.bulkpos == 0){
+      // Photon is outside bulk
+      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y){
+      // Photon is detectable
+        if(p.z <= 0.) {
+          // Photon reflected
+          // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+          index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
                       __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
+				  if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
-        p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
-    }
-
-    if(p.z > (*esp_dc) && reflected==0u) {
-      // Photon is transmitted - transmitance
-			if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
-        // Inside detector
-        // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-        index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-                    __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-        if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
-			}
-			p.weight = 0; // Set the remaining weight to 0, killing the photon
+        if(p.z > (*esp_dc)) {
+          // Photon transmitted
+          // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+          index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+                      __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+          if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
+        }
+      }
+      p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
     }
 
 		w=0;
@@ -340,11 +337,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
 __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned int* a, MemStruct DeviceMem)
 {
 
-  //const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
-  //const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
-  const float esp = *esp_dc;
-  const unsigned int num_x = __float2uint_rn(4*esp*__int2float_rn(TAM_GRILLA));
-  const unsigned int num_y = __float2uint_rn(4*esp*__int2float_rn(TAM_GRILLA));
+  //const float esp = *esp_dc;
+  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
+  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
 
   if (*dir_dc == 0.0f) {
     // Isotropic source, random position in voxel size
@@ -370,14 +365,17 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 
 
     p->weight = 0xFFFFFFFF; // no specular reflection (Initial weight: max int32)
-    if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc) && (*bulk_method_dc) == 2){ //Inside space of fhd
-        //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-      int index = __float2uint_rz((p->x+2*esp)*__int2float_rn(TAM_GRILLA))
-                + num_x * (__float2uint_rz((p->y+2*esp)*__int2float_rn(TAM_GRILLA))
-                + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
-      p->bulkpos = DeviceMem.bulk_info[index];
+    if ((*bulk_method_dc) == 2){
+      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
+          //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
+                  + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
+                  + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
+          p->bulkpos = DeviceMem.bulk_info[index];
+        }
+      else p->bulkpos = 0;
     }
-    else p->bulkpos = 1;
+    else p->bulkpos = 0;
 
 
   }
@@ -406,28 +404,34 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 
     p->weight = *start_weight_dc; // specular reflection at boundary
 
-    if(fabsf(p->x)<(*esp_dc)*2 && fabsf(p->y)<(*esp_dc)*2 && p->z<(*esp_dc) && (*bulk_method_dc) == 2){ //Inside space of fhd
-        //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-      int index = __float2uint_rz((p->x+2*esp)*__int2float_rn(TAM_GRILLA))
-                + num_x * (__float2uint_rz((p->y+2*esp)*__int2float_rn(TAM_GRILLA))
-                + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
-      p->bulkpos = DeviceMem.bulk_info[index];
+    if ((*bulk_method_dc) == 2){
+      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
+          //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
+                  + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
+                  + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
+          p->bulkpos = DeviceMem.bulk_info[index];
+        }
+      else p->bulkpos = 0;
     }
-    else p->bulkpos = 1;
+    else p->bulkpos = 0;
   }
 
 	p->step= 0;
 
+  if ((*bulk_method_dc) == 1){
   // Found photon start layer
-  int found = 0;
-  int nl = 1;
-  while (nl < *n_layers_dc+2 && found != 1) {
-    if (*zi_dc < layers_dc[nl].z_max && *zi_dc >= layers_dc[nl].z_min){
-      p->layer = nl;
-      found = 1;
+    int found = 0;
+    int nl = 1;
+    while (nl < *n_layers_dc+2 && found != 1) {
+      if (*zi_dc < layers_dc[nl].z_max && *zi_dc >= layers_dc[nl].z_min){
+        p->layer = nl;
+        found = 1;
+      }
+      else nl++;
     }
-    else nl++;
   }
+  else p->layer = 0;
 }
 
 

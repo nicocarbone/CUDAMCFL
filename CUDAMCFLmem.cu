@@ -38,7 +38,6 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 
 int InitDCMem(SimulationStruct* sim)
 {
-	const unsigned int temp=0xFFFFFFFF;
 	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
 	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
@@ -162,6 +161,7 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 	cudaFree(DeviceMem->Rd_xy);
 	cudaFree(DeviceMem->Tt_xy);
 	cudaFree(DeviceMem->fhd);
+	cudaFree(DeviceMem->bulk_info);
 	cudaFree(DeviceMem->x);
   cudaFree(DeviceMem->a);
 	cudaFree(DeviceMem->thread_active);
