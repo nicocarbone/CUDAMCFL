@@ -522,7 +522,7 @@ int main(int argc, char *argv[]) {
          (double)(time3 - time1) /CLOCKS_PER_SEC);
   }
   free(Fx);
-  FreeSimulationStruct(simulations, n_simulations);
+  //FreeSimulationStruct(simulations, n_simulations);
 
   printf("All done! :)\n");
   printf("Total time: %.2f sec.\n", (double)(clock() - time0) /CLOCKS_PER_SEC);
