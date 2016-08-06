@@ -456,8 +456,8 @@ int main(int argc, char *argv[]) {
           }
 
           if (simulations[0].bulk_method == 2){
-            voxelw = ((double)simulations[0].bulks[index].eY *
-                  (double)(1 - simulations[0].bulks[index].albedof) *
+            voxelw = ((double)simulations[0].bulks[bulkdescriptor].eY *
+                  (double)(1 - simulations[0].bulks[bulkdescriptor].albedof) *
                   Fx[index]) /
                   (double)(voxel_status * 0xFFFFFFFF);
             }
