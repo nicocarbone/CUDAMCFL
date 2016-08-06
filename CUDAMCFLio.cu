@@ -515,7 +515,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		(*simulations)[i].bulk_info = (short*) malloc(sizeof(short)*(fhd_size));
 		if((*simulations)[i].bulk_info == NULL){perror("Failed to malloc bulk descriptors.\n");return 0;}
 
-	
+
 		std::string line;
 		std::ifstream infile(strbulk);
 
@@ -524,12 +524,12 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 			std::istringstream iss(line);
   		char c;
   		while (iss >> c) {
-				read_count++;
     		int value = c - '0';
 				if (read_count <= fhd_size) {
 					(*simulations)[i].bulk_info[read_count] = value;
 					//printf("%i", value);
 				}
+				read_count++;
   		}
 		}
 		printf("Number of voxels of bulk descritor file: %i\n", read_count);
