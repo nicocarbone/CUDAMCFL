@@ -299,6 +299,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
         }
       }
       p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+      s = 0.0f;
     }
 
 		w=0;
