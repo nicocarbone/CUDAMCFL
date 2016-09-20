@@ -497,13 +497,12 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		while(ii<=0){
 			fgets (mystring , STR_LEN , pFile);
 			ii=sscanf(mystring,"%s",strbulk);
-			printf("%s, %i\n", strbulk, ii);
+			printf("Bulk Descriptor file: %s\n", strbulk);
 			if(ii>1){perror("Error bulk matrix filename");return 0;}
 			//ii=ischar(strbulk[0]);
 			}
 
 		strcpy((*simulations)[i].bulkinfo_filename,strbulk);
-
 
 		// Read matrix
 		const int num_x=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
@@ -514,7 +513,6 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		// Allocate memory for the bulks
 		(*simulations)[i].bulk_info = (short*) malloc(sizeof(short)*(fhd_size));
 		if((*simulations)[i].bulk_info == NULL){perror("Failed to malloc bulk descriptors.\n");return 0;}
-
 
 		std::string line;
 		std::ifstream infile(strbulk);
@@ -539,7 +537,6 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		// Calculate start_weight
 		n1=(*simulations)[i].bulks[0].n;
 		n2=(*simulations)[i].bulks[1].n;
-
 
 		// Dummy layers malloc so cudaMemcpy doesn't fail.
 		(*simulations)[i].layers = (LayerStruct*) malloc(sizeof(LayerStruct));

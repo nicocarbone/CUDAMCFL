@@ -116,7 +116,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
                               DeviceMem.num_terminated_photons,
                               sizeof(unsigned long long), cudaMemcpyDeviceToHost));
     if (i == 50)
-      printf("Estimated FHD simulation time: %.0f secs.\n",
+      printf("Estimated PHD simulation time: %.0f secs.\n",
              (double)(clock() - time1) / CLOCKS_PER_SEC *
                  (double)(simulation->number_of_photons /
                           *HostMem.num_terminated_photons));
@@ -136,7 +136,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
   printf("Writing excitation results...\n");
   Write_Simulation_Results(&HostMem, simulation, time2-time1);
-  printf("FHD Simulation done!\n");
+  printf("PHD Simulation done!\n");
 
   unsigned long long photons_finished = *HostMem.num_terminated_photons;
 
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
   // for(i=0;i<n_simulations;i++)
   //{
   // Run a simulation
-  printf("Running FHD simulation...\n");
+  printf("Running PHD simulation...\n");
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
@@ -306,13 +306,13 @@ int main(int argc, char *argv[]) {
 
 
   // Outputting FHD files for debug
-  printf("Writing FHD files...\n"); // TODO
+  printf("Writing PHD files...\n"); // TODO
 
   // ASCII file
   FILE *fhd3DaFile_out;
   char filenamefl3da[STR_LEN];
 	for (int ic=0; ic<STR_LEN; ic++) filenamefl3da[ic] = simulations[0].outp_filename[ic];
-  strcat(filenamefl3da, "_FHD-Ascii.dat");
+  strcat(filenamefl3da, "_PHD-Ascii.dat");
 
   fhd3DaFile_out = fopen(filenamefl3da, "w");
   if (fhd3DaFile_out == NULL) {
@@ -369,8 +369,7 @@ int main(int argc, char *argv[]) {
     long voxel_finished = 0; // Nro of voxel simulated
     long voxel_inside = 0;   // Nro of voxel simulated inside inclusion
     long voxel_outside = 0;  // Nro of voxel simulated outside inclusion
-    //const long for_size =
-        num_x * num_y * num_z; // Total number of voxels to be simulated
+    //const long for_size = num_x * num_y * num_z; // Total number of voxels to be simulated
     float xi, yi, zi;          // Temporal variable to store the voxel coordinates
     double voxelw; // Temporal variable to store the voxel scale factor
     clock_t time1,
@@ -472,11 +471,12 @@ int main(int argc, char *argv[]) {
           // Accumulate image
           for (int ij = 0; ij < xy_size; ij++) {
             double tempvw = voxelw * (double)tempret[ij];
-            //printf ("%E\n", tempvw);
             if (Fl_Het[ij] + tempvw < DBL_MAX) Fl_Het[ij] += tempvw/(dx*dy);
 					}
           voxel_finished++;
+
           free(tempret);
+
           if (fmod(voxel_finished, 200) == 0) printf("."); fflush(stdout);
           if (fmod(voxel_finished, 10000) == 0)
             printf("\n%li of %li voxels finished\n", voxel_finished, fhd_size);

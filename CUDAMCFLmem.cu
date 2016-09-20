@@ -15,7 +15,7 @@
 */
 
 int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim)
-{ //Copy data from Device to Host memory
+{ // Copy data from Device to Host memory
 
 	const int xy_size = sim->det.nx + sim->det.ny*sim->det.nx;
 	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
@@ -23,13 +23,14 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
 	const int fhd_size = num_x * num_y * num_z;
 
-	//Copy Rd_xy, Tt_xy and A_xyz
+	// Copy Rd_xy, Tt_xy and A_xyz
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->Rd_xy,DeviceMem->Rd_xy,xy_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->Tt_xy,DeviceMem->Tt_xy,xy_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
+	// Copy fhd
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->fhd,DeviceMem->fhd,fhd_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
-	//Also copy the state of the RNG's
+	// Copy the state of the RNG's
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->x,DeviceMem->x,NUM_THREADS*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
 	return 0;
@@ -75,12 +76,16 @@ int InitDCMem(SimulationStruct* sim)
 
 	// Copy x source position to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(xi_dc,&(sim->xi),sizeof(float)));
+
 	// Copy y source position to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(yi_dc,&(sim->yi),sizeof(float)));
+
 	// Copy z source position to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(zi_dc,&(sim->zi),sizeof(float)));
+
 	// Copy source direction to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(dir_dc,&(sim->dir),sizeof(float)));
+
 	// Copy esp to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(esp_dc,&(sim->esp),sizeof(float)));
 
@@ -134,7 +139,6 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	HostMem->thread_active = (unsigned int*) malloc(NUM_THREADS*sizeof(unsigned int));
 	if(HostMem->thread_active==NULL){printf("Error allocating HostMem->thread_active"); exit (1);}
 	for(int i=0;i<NUM_THREADS;i++)HostMem->thread_active[i]=1u;
-
 	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->thread_active,NUM_THREADS*sizeof(unsigned int)) );
 	CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->thread_active,HostMem->thread_active,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
 
@@ -142,7 +146,6 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	HostMem->num_terminated_photons = (unsigned long long*) malloc(sizeof(unsigned long long));
 	if(HostMem->num_terminated_photons==NULL){printf("Error allocating HostMem->num_terminated_photons"); exit (1);}
 	*HostMem->num_terminated_photons=0;
-
 	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->num_terminated_photons,sizeof(unsigned long long)) );
 	CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->num_terminated_photons,HostMem->num_terminated_photons,sizeof(unsigned long long),cudaMemcpyHostToDevice));
 

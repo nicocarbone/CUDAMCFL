@@ -160,13 +160,19 @@ __global__ void MCd(MemStruct DeviceMem)
           (inclusion_dc[0].r*inclusion_dc[0].r)) {
             // Inside inclusion
 				    w = __float2uint_rn(inclusion_dc[0].mua*inclusion_dc[0].mutr*__uint2float_rn(p.weight));
-				    p.weight -= w;//__int_as_float(data.w);
+            if (p.weight - w >= 0) // Check for underflow
+              p.weight -= w;
+            else
+              p.weight = 0;
 				    Spin(&p,inclusion_dc[0].g,&x,&a);
       }
 			else {
         // Outside inclusion
 				w = __float2uint_rn(layers_dc[p.layer].mua*layers_dc[p.layer].mutr*__uint2float_rn(p.weight));
-				p.weight -= w;//__int_as_float(data.w);
+        if (p.weight - w >= 0) // Check for underflow
+          p.weight -= w;
+        else
+          p.weight = 0;
 				Spin(&p,layers_dc[p.layer].g,&x,&a);
 			}
 		}
@@ -225,16 +231,18 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
 	int new_bulk; // int storing bulk descriptor of current position
 
-	//First, make sure the thread (photon) is active
+	// First, make sure the thread (photon) is active
 	unsigned int ii = 0;
 	if(!DeviceMem.thread_active[begin+tx]) ii = NUMSTEPS_GPU;
 
 	for(;ii<NUMSTEPS_GPU;ii++) {
-    //this is the main while loop
+    // Main while loop
   	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX)
 			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-		else
-			s = 100.0f;//temporary, say the step in glass is 100 cm.
+		else {
+			s = 100.0f; //temporary, say the step in glass is 100 cm.
+      p.weight = 0u;
+    }
 
 		//Check for layer transitions and in case, calculate s
 		new_bulk = p.bulkpos;
@@ -257,8 +265,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		p.y += p.dy*s;
 		p.z += p.dz*s;
 
-    //Accumulate foton hitting density
-    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc) && p.z>=0){ // Inside space of 3D matrix
+    // Accumulate foton hitting density and retrieve bulk position
+    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc) && p.z>=0){
+      // Inside space of 3D matrix
       // Index of the current voxel
       // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
       index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
@@ -277,6 +286,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		if(new_bulk != p.bulkpos) {
       // If changing voxel do Reflect
       reflected = Reflect(&p,new_bulk,&x,&a,2);
+      // TODO: what to do if stepping out of a "glass" voxel?
     }
 
     if(p.bulkpos == 0){
@@ -298,7 +308,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
           if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
       }
-      p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+      p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
       s = 0.0f;
     }
 
@@ -307,7 +317,10 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		if(s > 0.0f) {
 			// Drop weight (apparently only when the photon is scattered)
 			w = __float2uint_rn(bulks_dc[p.bulkpos].mua*bulks_dc[p.bulkpos].mutr*__uint2float_rn(p.weight));
-			p.weight -= w;//__int_as_float(data.w);
+			if (p.weight - w >= 0) // Check for underflow
+        p.weight -= w;
+      else
+        p.weight = 0;
 			Spin(&p,bulks_dc[p.bulkpos].g,&x,&a);
 		}
 
@@ -344,7 +357,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 
   if (*dir_dc == 0.0f) {
     // Isotropic source, random position in voxel size
-    // We are using round to zero in FHD, so pixels are mapped to 0 boundary
+    // We are using round to zero in PHD, so pixels are mapped to 0 boundary
     p->x  = *xi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
   	p->y  = *yi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
     p->z  = *zi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
@@ -364,7 +377,6 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 	  p->dy = sintheta*sinpsi;
 	  p->dz = costheta;
 
-
     p->weight = 0xFFFFFFFF; // no specular reflection (Initial weight: max int32)
     if ((*bulk_method_dc) == 2){
       if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
@@ -377,7 +389,6 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
       else p->bulkpos = 0;
     }
     else p->bulkpos = 0;
-
 
   }
   else {
@@ -396,18 +407,17 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
     p->x = *xi_dc + sample_rad * cos_phi;
     p->y = *yi_dc + sample_rad * sin_phi;
     p->z = *zi_dc;
-    //printf("%f\n",p->z);
 
     p->dx = 0.0f;
 	  p->dy = 0.0f;
 	  p->dz = 1.0f;
 
-
     p->weight = *start_weight_dc; // specular reflection at boundary
 
     if ((*bulk_method_dc) == 2){
-      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
-          //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){
+          // Inside space of fhd
+          // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
           int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
                   + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
                   + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
@@ -466,11 +476,11 @@ __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned i
 
 	float tempdir=p->dx;
 
-	//This is more efficient for g!=0 but of course less efficient for g==0
-	temp = __fdividef((1.0f-(g)*(g)),(1.0f-(g)+2.0f*(g)*rand_MWC_co(x,a)));//Should be close close????!!!!!
+	// This is more efficient for g!=0 but of course less efficient for g==0
+	temp = __fdividef((1.0f-(g)*(g)),(1.0f-(g)+2.0f*(g)*rand_MWC_co(x,a)));// Should be close close????!!!!!
 	cost = __fdividef((1.0f+(g)*(g) - temp*temp),(2.0f*(g)));
 	if(g==0.0f)
-		cost = 2.0f*rand_MWC_co(x,a) -1.0f;//Should be close close??!!!!!
+		cost = 2.0f*rand_MWC_co(x,a) -1.0f;// Should be close close??!!!!!
 
 	sint = sqrtf(1.0f - cost*cost);
 
@@ -478,20 +488,20 @@ __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned i
 
 	temp = sqrtf(1.0f - p->dz*p->dz);
 
-	if(temp==0.0f) //normal incident.
+	if(temp==0.0f) // Normal incident.
 	{
 		p->dx = sint*cosp;
 		p->dy = sint*sinp;
 		p->dz = copysignf(cost,p->dz*cost);
 	}
-	else // regular incident.
+	else // Regular incident.
 	{
 		p->dx = __fdividef(sint*(p->dx*p->dz*cosp - p->dy*sinp),temp) + p->dx*cost;
 		p->dy = __fdividef(sint*(p->dy*p->dz*cosp + tempdir*sinp),temp) + p->dy*cost;
 		p->dz = -sint*cosp*temp + p->dz*cost;
 	}
 
-	//normalisation seems to be required as we are using floats! Otherwise the small numerical error will accumulate
+	// Normalisation seems to be required as we are using floats! Otherwise the small numerical error will accumulate
 	temp=rsqrtf(p->dx*p->dx+p->dy*p->dy+p->dz*p->dz);
 	p->dx = p->dx*temp;
 	p->dy = p->dy*temp;
@@ -545,7 +555,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int newlb, unsigned long long* 
 		}
 	}
 
-	//gives almost exactly the same results as the old MCML way of doing the calculation but does it slightly faster
+	// gives almost exactly the same results as the old MCML way of doing the calculation but does it slightly faster
 	// save a few multiplications, calculate cos_angle_i^2;
 	float e = __fdividef(n1*n1,n2*n2)*(1.0f-cos_angle_i*cos_angle_i); //e is the sin square of the transmission angle
 	r=2*sqrtf((1.0f-cos_angle_i*cos_angle_i)*(1.0f-e)*e*cos_angle_i*cos_angle_i);//use r as a temporary variable
