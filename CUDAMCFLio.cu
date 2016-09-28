@@ -289,6 +289,10 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		if(!readints(1, itemp, pFile)){perror ("Error reading number of photons per voxel");return 0;}
 		(*simulations)[i].number_of_photons_per_voxel=(unsigned long)itemp[0];
 
+		// Read grid size
+		if(!readints(1, itemp, pFile)){perror ("Error reading grid size");return 0;}
+		(*simulations)[i].grid_size=(unsigned long)itemp[0];
+
 		// Read fluorescence simulation flag
 		if(!readints(1, itemp, pFile)){perror ("Error reading fluorescence simulaion flag");return 0;}
 		(*simulations)[i].do_fl_sim=itemp[0];

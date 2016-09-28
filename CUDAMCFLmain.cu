@@ -44,6 +44,7 @@ __device__ __constant__ float yi_dc[1];
 __device__ __constant__ float zi_dc[1];
 __device__ __constant__ float dir_dc[1];
 __device__ __constant__ float esp_dc[1];
+__device__ __constant__ unsigned int grid_size_dc[1];
 
 #include "CUDAMCFLio.cu"
 #include "CUDAMCFLmem.cu"
@@ -59,9 +60,9 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   unsigned int i, ii;
 
   // Output matrix size
-  const int num_x = (int)(4 * (simulation->esp) * (float)TAM_GRILLA);
-  const int num_y = (int)(4 * (simulation->esp) * (float)TAM_GRILLA);
-  const int num_z = (int)((simulation->esp) * (float)TAM_GRILLA);
+  const int num_x = (int)(4 * (simulation->esp) * (float)simulation->grid_size);
+  const int num_y = (int)(4 * (simulation->esp) * (float)simulation->grid_size);
+  const int num_z = (int)((simulation->esp) * (float)simulation->grid_size);
   const int fhd_size = num_x * num_y * num_z;
   //const int fhd_size = num_x + num_x * (num_y + num_z * num_y); //x + HEIGHT* (y + WIDTH* z)
 
@@ -143,7 +144,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   // Normalize and write output matrix
   for (int xyz = 0; xyz < fhd_size; xyz++) {
     tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*photons_finished));//*(double)NUMSTEPS_GPU;//((double)HostMem.fhd[xyz]+(double)FLT_MAX)*10. / photons_finished;
-                   //* ((1/(float)TAM_GRILLA) * (1/(float)TAM_GRILLA) * (1/(float)TAM_GRILLA)));
+                   //* ((1/(float)simulation->grid_size) * (1/(float)simulation->grid_size) * (1/(float)simulation->grid_size)));
   }
 
   printf ("Photons simulated: %llu\n\n", photons_finished);
@@ -286,9 +287,9 @@ int main(int argc, char *argv[]) {
     return 1;
 
   // Store in local variables the number of voxels in each direction
-  const int num_x = (int)(4 * (simulations[0].esp) * (float)TAM_GRILLA);
-  const int num_y = (int)(4 * (simulations[0].esp) * (float)TAM_GRILLA);
-  const int num_z = (int)((simulations[0].esp) * (float)TAM_GRILLA);
+  const int num_x = (int)(4 * (simulations[0].esp) * (float)simulations[0].grid_size);
+  const int num_y = (int)(4 * (simulations[0].esp) * (float)simulations[0].grid_size);
+  const int num_z = (int)((simulations[0].esp) * (float)simulations[0].grid_size);
   //const int fhd_size = num_x + num_x * (num_y + num_y * num_z); //x + HEIGHT* (y + WIDTH* z)
   const int fhd_size = num_x * num_y * num_z; //x + HEIGHT* (y + WIDTH* z)
 
@@ -404,9 +405,9 @@ int main(int argc, char *argv[]) {
           short bulkdescriptor = simulations[0].bulk_info[index];
 
           // Set source position
-          xi = (ix / (float)TAM_GRILLA) - 2* simulations[0].esp;
-          yi = (iy / (float)TAM_GRILLA) - 2* simulations[0].esp;
-          zi = (iz / (float)TAM_GRILLA);
+          xi = (ix / (float)simulations[0].grid_size) - 2* simulations[0].esp;
+          yi = (iy / (float)simulations[0].grid_size) - 2* simulations[0].esp;
+          zi = (iz / (float)simulations[0].grid_size);
 
           simulations[0].xi = xi;
           simulations[0].yi = yi;

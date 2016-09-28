@@ -39,9 +39,9 @@ __global__ void MCd(MemStruct DeviceMem)
   int begin=NUM_THREADS_PER_BLOCK*bx;
 
 	const float esp=layers_dc[(*n_layers_dc)].z_max;
-	const unsigned int num_x = __float2uint_rn(4*esp*__int2float_rn(TAM_GRILLA));
-  const unsigned int num_y = __float2uint_rn(4*esp*__int2float_rn(TAM_GRILLA));
-  //const unsigned int num_z = __float2uint_rn(esp*(double)TAM_GRILLA);
+	const unsigned int num_x = __float2uint_rn(4*esp*__int2float_rn(*grid_size_dc));
+  const unsigned int num_y = __float2uint_rn(4*esp*__int2float_rn(*grid_size_dc));
+  //const unsigned int num_z = __float2uint_rn(esp*(double)*grid_size_dc);
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
@@ -100,9 +100,9 @@ __global__ void MCd(MemStruct DeviceMem)
     if (*fhd_activated_dc == 1){
       if(fabsf(p.x)<2*esp && fabsf(p.y)<2*esp && p.z<esp){ //Inside space of fhd
         //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-        index = __float2uint_rz((p.x+2*esp)*__int2float_rn(TAM_GRILLA))
-                  + num_x * (__float2uint_rz((p.y+2*esp)*__int2float_rn(TAM_GRILLA))
-                  + num_y * __float2uint_rz((p.z)*__int2float_rn(TAM_GRILLA))); //x + HEIGHT* (y + WIDTH* z) Fx[ix + num_x * (iy + iz * num_y)]
+        index = __float2uint_rz((p.x+2*esp)*__int2float_rn(*grid_size_dc))
+                  + num_x * (__float2uint_rz((p.y+2*esp)*__int2float_rn(*grid_size_dc))
+                  + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc))); //x + HEIGHT* (y + WIDTH* z) Fx[ix + num_x * (iy + iz * num_y)]
 
         if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
       }
@@ -213,8 +213,8 @@ __global__ void MCd3D(MemStruct DeviceMem)
   int begin=NUM_THREADS_PER_BLOCK*bx;
 
   // 3D bulk matrix width and height
-  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
-  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
+  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
+  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
 
   // 2D output matrix size
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
@@ -241,12 +241,11 @@ __global__ void MCd3D(MemStruct DeviceMem)
 			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
 		else {
 			s = 100.0f; //temporary, say the step in glass is 100 cm.
-      p.weight = 0u;
+      //p.weight = 0u;
     }
 
 		//Check for layer transitions and in case, calculate s
 		new_bulk = p.bulkpos;
-
 
     /*
     //Check for upwards reflection/transmission & calculate new s
@@ -262,37 +261,52 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     // Move photon
     p.x += p.dx*s;
-		p.y += p.dy*s;
-		p.z += p.dz*s;
+    p.y += p.dy*s;
+    p.z += p.dz*s;
+    int side_scape = 0;
 
     // Accumulate foton hitting density and retrieve bulk position
-    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc) && p.z>=0){
-      // Inside space of 3D matrix
-      // Index of the current voxel
-      // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-      index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-                + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-                + num_y * __float2uint_rz((p.z)*__int2float_rn(TAM_GRILLA)));
-      new_bulk = DeviceMem.bulk_info[index];
-      if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+    if(p.z<(*esp_dc) && p.z>=0) {
+      if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc)) {
+        // Inside space of 3D matrix
+        // Index of the current voxel
+        // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+        index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
+        new_bulk = DeviceMem.bulk_info[index];
+        if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+      }
+      else {
+        // Photon scaped to the sides
+        // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
+        new_bulk = 0;
+        side_scape = 1;
+      }
     }
     else {
+      // Photon scaped through the front or the back
       // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
       new_bulk = 0;
+      side_scape = 0;
     }
 
     unsigned int reflected;
 
 		if(new_bulk != p.bulkpos) {
       // If changing voxel do Reflect
-      reflected = Reflect(&p,new_bulk,&x,&a,2);
+      if (side_scape == 0) reflected = Reflect(&p,new_bulk,&x,&a,2);
+      if (side_scape == 1) {
+        p.bulkpos = 0;
+        // TODO: side Reflect
+      }
       // TODO: what to do if stepping out of a "glass" voxel?
     }
 
     if(p.bulkpos == 0){
       // Photon is outside bulk
-      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y){
-      // Photon is detectable
+      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
+        // Photon is detectable
         if(p.z <= 0.) {
           // Photon reflected
           // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
@@ -324,8 +338,8 @@ __global__ void MCd3D(MemStruct DeviceMem)
 			Spin(&p,bulks_dc[p.bulkpos].g,&x,&a);
 		}
 
-		if(!PhotonSurvive(&p,&x,&a)) // Check if photons survives or not
-		{
+		if(!PhotonSurvive(&p,&x,&a)) {
+      // Check if photons survives or not
 			if(atomicAdd(DeviceMem.num_terminated_photons,1ULL) < (*num_photons_dc-NUM_THREADS)) {
         // Ok to launch another photon
 				LaunchPhoton(&p,&x,&a, DeviceMem);//Launch a new photon
@@ -352,15 +366,15 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 {
 
   //const float esp = *esp_dc;
-  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
-  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(TAM_GRILLA));
+  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
+  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
 
   if (*dir_dc == 0.0f) {
     // Isotropic source, random position in voxel size
     // We are using round to zero in PHD, so pixels are mapped to 0 boundary
-    p->x  = *xi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
-  	p->y  = *yi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
-    p->z  = *zi_dc + (1.0f/__int2float_rn(TAM_GRILLA))*rand_MWC_oc(x,a);
+    p->x  = *xi_dc + (1.0f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
+  	p->y  = *yi_dc + (1.0f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
+    p->z  = *zi_dc + (1.0f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
 
     float costheta = 1.0 - 2.0*rand_MWC_oc(x,a);
 	  float sintheta = sqrt(1.0 - costheta*costheta);
@@ -381,9 +395,9 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
     if ((*bulk_method_dc) == 2){
       if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
           //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-                  + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-                  + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
+          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                  + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                  + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
           p->bulkpos = DeviceMem.bulk_info[index];
         }
       else p->bulkpos = 0;
@@ -418,9 +432,9 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
       if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){
           // Inside space of fhd
           // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-                  + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(TAM_GRILLA))
-                  + num_y * __float2uint_rz((p->z)*__int2float_rn(TAM_GRILLA)));
+          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                  + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                  + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
           p->bulkpos = DeviceMem.bulk_info[index];
         }
       else p->bulkpos = 0;
@@ -570,7 +584,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int newlb, unsigned long long* 
 	}
 	else
 	{
-		// Transmission, update layer and direction
+		// Transmission, update layer/descritor and direction
 		r = __fdividef(n1,n2);
 		e = r*r*(1.0f-cos_angle_i*cos_angle_i); //e is the sin square of the transmission angle
 		p->dx *= r;

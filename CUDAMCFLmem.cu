@@ -18,9 +18,9 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 { // Copy data from Device to Host memory
 
 	const int xy_size = sim->det.nx + sim->det.ny*sim->det.nx;
-	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
-	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
-	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
+	const int num_x=(int)(4*(sim->esp)*(double)sim->grid_size);
+	const int num_y=(int)(4*(sim->esp)*(double)sim->grid_size);
+	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
 	// Copy Rd_xy, Tt_xy and A_xyz
@@ -39,9 +39,9 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 
 int InitDCMem(SimulationStruct* sim)
 {
-	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
-	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
-	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
+	const int num_x=(int)(4*(sim->esp)*(double)sim->grid_size);
+	const int num_y=(int)(4*(sim->esp)*(double)sim->grid_size);
+	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
 	// Copy fhd flag
@@ -64,6 +64,9 @@ int InitDCMem(SimulationStruct* sim)
 
 	// Copy start_weight_dc to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(start_weight_dc,&(sim->start_weight),sizeof(unsigned int)));
+
+	// Copy grid_size_dc to constant device memory
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(grid_size_dc,&(sim->grid_size),sizeof(unsigned int)));
 
 	// Copy layer data to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct)) );
@@ -97,9 +100,9 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 {
 	const int xy_size = sim->det.nx + sim->det.ny*sim->det.nx; //TODO: more efficient space usage
 
-	const int num_x=(int)(4*(sim->esp)*(double)TAM_GRILLA);
-	const int num_y=(int)(4*(sim->esp)*(double)TAM_GRILLA);
-	const int num_z=(int)((sim->esp)*(double)TAM_GRILLA);
+	const int num_x=(int)(4*(sim->esp)*(double)sim->grid_size);
+	const int num_y=(int)(4*(sim->esp)*(double)sim->grid_size);
+	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
 	// Allocate p on the device
