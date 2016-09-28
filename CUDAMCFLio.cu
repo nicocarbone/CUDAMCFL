@@ -291,7 +291,8 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 
 		// Read grid size
 		if(!readints(1, itemp, pFile)){perror ("Error reading grid size");return 0;}
-		(*simulations)[i].grid_size=(unsigned long)itemp[0];
+		(*simulations)[i].grid_size=(unsigned int)itemp[0];
+		printf ("\nGrid finesse: %u\n\n", (*simulations)[i].grid_size);
 
 		// Read fluorescence simulation flag
 		if(!readints(1, itemp, pFile)){perror ("Error reading fluorescence simulaion flag");return 0;}
@@ -310,12 +311,12 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 			else {perror ("Error reading fluorescence simulaion flag");return 0;}
 
 		// Read dx and dy (2x float)
-		if(!readfloats(2, ftemp, pFile)){perror ("Error reading dr and dz");return 0;}
+		if(!readfloats(2, ftemp, pFile)){perror ("Error reading dx and dy");return 0;}
 		(*simulations)[i].det.dx=ftemp[0];
 		(*simulations)[i].det.dy=ftemp[1];
 
 		// Read No. of dx and dy  (2x int)
-		if(!readints(2, itemp, pFile)){perror ("Error reading No. of dx, dy and dz");return 0;}
+		if(!readints(2, itemp, pFile)){perror ("Error reading No. of nx and ny");return 0;}
 		(*simulations)[i].det.nx=itemp[0];
 		(*simulations)[i].det.ny=itemp[1];
 		printf("Detector geometry= %i x %f, %i x %f. \n\n",(*simulations)[i].det.nx,(*simulations)[i].det.dx,
