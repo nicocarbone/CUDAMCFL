@@ -372,9 +372,9 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
   if (*dir_dc == 0.0f) {
     // Isotropic source, random position in voxel size
     // We are using round to zero in PHD, so pixels are mapped to 0 boundary
-    p->x  = *xi_dc + (1.0f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
-  	p->y  = *yi_dc + (1.0f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
-    p->z  = *zi_dc + (1.0f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
+    p->x  = *xi_dc + (0.999999f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
+  	p->y  = *yi_dc + (0.999999f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
+    p->z  = *zi_dc + (0.999999f/__int2float_rn(*grid_size_dc))*rand_MWC_oc(x,a);
 
     float costheta = 1.0 - 2.0*rand_MWC_oc(x,a);
 	  float sintheta = sqrt(1.0 - costheta*costheta);

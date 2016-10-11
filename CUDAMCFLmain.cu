@@ -287,9 +287,9 @@ int main(int argc, char *argv[]) {
     return 1;
 
   // Store in local variables the number of voxels in each direction
-  const int num_x = (int)(4 * (simulations[0].esp) * (float)simulations[0].grid_size);
-  const int num_y = (int)(4 * (simulations[0].esp) * (float)simulations[0].grid_size);
-  const int num_z = (int)((simulations[0].esp) * (float)simulations[0].grid_size);
+  const int num_x = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
+  const int num_y = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
+  const int num_z = (int)((simulations[0].esp) * simulations[0].grid_size);
   //const int fhd_size = num_x + num_x * (num_y + num_y * num_z); //x + HEIGHT* (y + WIDTH* z)
   const int fhd_size = num_x * num_y * num_z; //x + HEIGHT* (y + WIDTH* z)
 
@@ -405,9 +405,9 @@ int main(int argc, char *argv[]) {
           short bulkdescriptor = simulations[0].bulk_info[index];
 
           // Set source position
-          xi = (ix / (float)simulations[0].grid_size) - 2* simulations[0].esp;
-          yi = (iy / (float)simulations[0].grid_size) - 2* simulations[0].esp;
-          zi = (iz / (float)simulations[0].grid_size);
+          xi = ((float) ix / simulations[0].grid_size) - 2* simulations[0].esp;
+          yi = ((float) iy / simulations[0].grid_size) - 2* simulations[0].esp;
+          zi = ((float) iz / simulations[0].grid_size);
 
           simulations[0].xi = xi;
           simulations[0].yi = yi;
