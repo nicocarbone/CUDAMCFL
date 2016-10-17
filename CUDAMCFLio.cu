@@ -100,9 +100,6 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 	// Write simulation time
 	fprintf(paramFile_out,"# User time: %.2f sec\n\n",(double)simulation_time/CLOCKS_PER_SEC);
 
-	// Grid density
-	fprintf(paramFile_out,"# TAM_GRILLA: %i\n\n",TAM_GRILLA);
-
 	fprintf(paramFile_out,"InParam\t\t# Input parameters:\n");
 
 	// Copy the input data from inp_filename
@@ -510,9 +507,9 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		strcpy((*simulations)[i].bulkinfo_filename,strbulk);
 
 		// Read matrix
-		const int num_x=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
-		const int num_y=(int)(4*((*simulations)[i].esp)*(double)TAM_GRILLA);
-		const int num_z=(int)(((*simulations)[i].esp)*(double)TAM_GRILLA);
+		const int num_x=(int)(4*(*simulations)[i].esp*(*simulations)[i].grid_size);
+		const int num_y=(int)(4*(*simulations)[i].esp*(*simulations)[i].grid_size);
+		const int num_z=(int)((*simulations)[i].esp*(*simulations)[i].grid_size);
 		const int fhd_size = num_x * num_y * num_z;
 
 		// Allocate memory for the bulks
@@ -554,7 +551,6 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 	r = r*r;
 	start_weight = (unsigned int)((double)0xFFFFFFFF*(1-r));
 	(*simulations)[i].start_weight=start_weight;
-	printf("Starting photon weight: %u\n", (*simulations)[i].start_weight);
 
 	// Set default to direcional photons
 	(*simulations)[i].dir=1.0;

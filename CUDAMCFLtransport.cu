@@ -247,61 +247,70 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		//Check for layer transitions and in case, calculate s
 		new_bulk = p.bulkpos;
 
-    /*
-    //Check for upwards reflection/transmission & calculate new s
-		if(p.z+s*p.dz<0) {
-      s = -1.;
-      }
+    //int side_scape = 0;
 
-    //Check for downward reflection/transmission
-		if(p.z+s*p.dz>=(*esp_dc)){
-      s = 0.;
+    //Check for upwards reflection/transmission and move to surface
+		if(p.z+s*p.dz<0.) {
+      new_bulk = 0;
+      //side_scape = 0;
+      s = __fdividef(-p.z,p.dz);
     }
-    */
 
-    // Move photon
+    //Check for downward reflection/transmission and move to surface
+		if(p.z+s*p.dz>=(*esp_dc)){
+      new_bulk = 0;
+      //side_scape = 0;
+      s = __fdividef((*esp_dc)-p.z,p.dz);
+    }
+
+    // Move photon TODO:here?
     p.x += p.dx*s;
     p.y += p.dy*s;
     p.z += p.dz*s;
-    int side_scape = 0;
 
-    // Accumulate foton hitting density and retrieve bulk position
-    if(p.z<(*esp_dc) && p.z>=0) {
-      if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc)) {
+    // Retrieve bulk position
+    if(new_bulk!=0) {
+      if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc)){
         // Inside space of 3D matrix
         // Index of the current voxel
         // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
         index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-                + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-                + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
+              + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+              + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
         new_bulk = DeviceMem.bulk_info[index];
-        if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
       }
       else {
         // Photon scaped to the sides
         // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
-        new_bulk = 0;
-        side_scape = 1;
+        new_bulk = 1;
+        //side_scape = 1;
       }
-    }
-    else {
-      // Photon scaped through the front or the back
-      // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
-      new_bulk = 0;
-      side_scape = 0;
     }
 
     unsigned int reflected;
 
 		if(new_bulk != p.bulkpos) {
       // If changing voxel do Reflect
-      if (side_scape == 0) reflected = Reflect(&p,new_bulk,&x,&a,2);
-      if (side_scape == 1) {
-        p.bulkpos = 0;
+      //if (side_scape == 0)
+      reflected = Reflect(&p,new_bulk,&x,&a,2);
+      //if (side_scape == 1) {
+      //  p.bulkpos = 0;
         // TODO: side Reflect
-      }
+      //}
       // TODO: what to do if stepping out of a "glass" voxel?
     }
+
+    // Accumulate PHD if needed
+    if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.bulkpos != 0 && *fhd_activated_dc == 1) {
+      // Inside space of 3D matrix
+      // Index of the current voxel
+      // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+      index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+            + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+            + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
+      if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+    }
+
 
     if(p.bulkpos == 0){
       // Photon is outside bulk

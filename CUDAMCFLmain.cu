@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
     printf("Something wrong with read_simulation_data!\n");
     return 1;
   } else {
-    printf("Read %d simulations\n\n", n_simulations);
+    printf("\nRead %d simulations\n\n", n_simulations);
   }
 
 
