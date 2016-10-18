@@ -117,7 +117,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
                               DeviceMem.num_terminated_photons,
                               sizeof(unsigned long long), cudaMemcpyDeviceToHost));
     if (i == 50)
-      printf("Estimated PHD simulation time: %.0f secs.\n",
+      printf("Estimated PHD simulation time: %.0f secs.\n\n",
              (double)(clock() - time1) / CLOCKS_PER_SEC *
                  (double)(simulation->number_of_photons /
                           *HostMem.num_terminated_photons));

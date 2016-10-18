@@ -224,12 +224,12 @@ __global__ void MCd3D(MemStruct DeviceMem)
 	unsigned int a=DeviceMem.a[begin+tx];//coherent
 
 	float s;	// step length
-	int index; // temporal variable to store indexes to arrays
+	unsigned int index; // temporal variable to store indexes to arrays
 	unsigned int w; // photon weight
 
 	PhotonStruct p = DeviceMem.p[begin+tx];
 
-	int new_bulk; // int storing bulk descriptor of current position
+	unsigned int new_bulk; // int storing bulk descriptor of current position
 
 	// First, make sure the thread (photon) is active
 	unsigned int ii = 0;
@@ -237,12 +237,12 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
 	for(;ii<NUMSTEPS_GPU;ii++) {
     // Main while loop
+
   	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX)
 			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-		else {
-			s = 100.0f; //temporary, say the step in glass is 100 cm.
-      //p.weight = 0u;
-    }
+		else
+			//s = 100.0f; //temporary, say the step in glass is 100 cm.
+      s = 2.0f;
 
 		//Check for layer transitions and in case, calculate s
 		new_bulk = p.bulkpos;
@@ -257,7 +257,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
     }
 
     //Check for downward reflection/transmission and move to surface
-		if(p.z+s*p.dz>=(*esp_dc)){
+		if(p.z+s*p.dz>(*esp_dc)){
       new_bulk = 0;
       //side_scape = 0;
       s = __fdividef((*esp_dc)-p.z,p.dz);
@@ -267,6 +267,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
     p.x += p.dx*s;
     p.y += p.dy*s;
     p.z += p.dz*s;
+
+    //if(p.z>(*esp_dc)) p.z=(*esp_dc);//needed? TODO
+		//if(p.z<0.) p.z=0.;//needed? TODO
 
     // Retrieve bulk position
     if(new_bulk!=0) {
@@ -308,7 +311,8 @@ __global__ void MCd3D(MemStruct DeviceMem)
       index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
             + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
             + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
-      if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+      if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically
+      //TODO why LLONG_MAX?
     }
 
 
@@ -329,6 +333,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
           index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
                       __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
           if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
+          //TODO why LLONG_MAX?
         }
       }
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
@@ -343,7 +348,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 			if (p.weight - w >= 0) // Check for underflow
         p.weight -= w;
       else
-        p.weight = 0;
+        p.weight = 0u;
 			Spin(&p,bulks_dc[p.bulkpos].g,&x,&a);
 		}
 
