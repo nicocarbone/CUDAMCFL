@@ -327,7 +327,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
                       __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
 				  if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
-        if(p.z > (*esp_dc)) {
+        if(p.z >= (*esp_dc)) {
           // Photon transmitted
           // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
           index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
@@ -343,9 +343,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		w=0;
 
 		if(s > 0.0f) {
-			// Drop weight (apparently only when the photon is scattered)
-			w = __float2uint_rn(bulks_dc[p.bulkpos].mua*bulks_dc[p.bulkpos].mutr*__uint2float_rn(p.weight));
-			if (p.weight - w >= 0) // Check for underflow
+    	// Drop weight (apparently only when the photon is scattered)
+			w = __float2uint_ru(bulks_dc[p.bulkpos].mua*bulks_dc[p.bulkpos].mutr*__uint2float_rn(p.weight));
+			if (p.weight - w >= 0 && w > 0) // Check for underflow
         p.weight -= w;
       else
         p.weight = 0u;
@@ -365,6 +365,8 @@ __global__ void MCd3D(MemStruct DeviceMem)
 			}
 
 		}
+      //if (ii > NUMSTEPS_GPU-2) printf("%f,%f,%f\n", p.x, p.y, p.z);
+
 	}//end main for loop!
 	__syncthreads();//necessary?
 
@@ -406,15 +408,15 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 	  p->dz = costheta;
 
     p->weight = 0xFFFFFFFF; // no specular reflection (Initial weight: max int32)
-    if ((*bulk_method_dc) == 2){
-      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){ //Inside space of fhd
-          //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+    if ((*bulk_method_dc) == 2 && p->z<=(*esp_dc)){
+      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc)){ //Inside space of fhd
+        //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+        int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
                   + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
                   + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
-          p->bulkpos = DeviceMem.bulk_info[index];
-        }
-      else p->bulkpos = 0;
+        p->bulkpos = DeviceMem.bulk_info[index];
+      }
+      else p->bulkpos = 1;
     }
     else p->bulkpos = 0;
 

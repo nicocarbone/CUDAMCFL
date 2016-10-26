@@ -126,6 +126,12 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
       printf("\nRun %u, %llu photons simulated\n", i,
              *HostMem.num_terminated_photons);
 
+    //if (i > 100000) {
+    // If we are still running after 100000 steps, something definetly went wrong.
+    //   printf("\nWARNING: Breaking out of loop...\n");
+    //   break;
+    //}
+
   }
 
   CopyDeviceToHostMem(&HostMem, &DeviceMem, simulation);
@@ -185,10 +191,10 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
     printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
   i = 0;
-  int watchdog = 0;
+  //int watchdog = 0;
   while (threads_active_total > 0) {
     i++;
-    watchdog++;
+    //watchdog++;
     // run the kernel
     if (simulation->bulk_method == 1){
       MCd<<<dimGrid, dimBlock>>>(DeviceMem);
@@ -214,10 +220,10 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
                               DeviceMem.num_terminated_photons,
                               sizeof(unsigned long long), cudaMemcpyDeviceToHost));
 
-    if (watchdog > 10000) {
+    if (i > 10000) {
       // If we are still running after 10000 steps, something definetly went wrong.
       printf("\nWARNING: Breaking out of loop...\n");
-      return 0;
+      break;
     }
   }
 
@@ -298,7 +304,13 @@ int main(int argc, char *argv[]) {
   // for(i=0;i<n_simulations;i++)
   //{
   // Run a simulation
+
+  const unsigned long long number_phd_photons = simulations[0].number_of_photons;
+
   printf("Running PHD simulation...\n");
+
+  simulations[0].dir = 0.0f;        // Isotropic source
+
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
@@ -525,7 +537,10 @@ int main(int argc, char *argv[]) {
   free(Fx);
   //FreeSimulationStruct(simulations, n_simulations);
 
-  printf("All done! :)\n");
+  if (fhd_sim_photons == number_phd_photons &&
+     (fluor_sim_photons == simulations[0].number_of_photons * fhd_size || simulations[0].do_fl_sim == 0))
+     printf("All done, no errors! :)\n");
+  else printf ("Simulation finished, some photons were not properly simulated. \n");
   printf("Total time: %.2f sec.\n", (double)(clock() - time0) /CLOCKS_PER_SEC);
   printf("Total simulated photons:\n");
   printf("\t %li FHD photons.\n", fhd_sim_photons);
