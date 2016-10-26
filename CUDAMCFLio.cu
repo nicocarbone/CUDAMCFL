@@ -123,12 +123,12 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 	transFile_out = fopen (filenametrans , "w");
 	if (transFile_out == NULL){perror ("Error opening transmission output file");return 0;}
 
-	for(x=0;x<nx;x++)
+	for(y=0;x<ny;y++)
 	{
-		for(y=0;y<ny;y++)
+		for(x=0;x<nx;x++)
 		{
 			scale2=scale1*dx*dy; // Normalization Constant
-			fprintf(transFile_out," %E ",(double)HostMem->Tt_xy[x*ny+y]/scale2);
+			fprintf(transFile_out," %E ",(double)HostMem->Tt_xy[y*nx+x]/scale2);
 		}
 		fprintf(transFile_out," \n ");
 	}
@@ -143,12 +143,12 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 	reflFile_out = fopen (filenamerefl , "w");
 	if (reflFile_out == NULL){perror ("Error opening reflection output file");return 0;}
 
-	for(x=0;x<nx;x++)
+	for(y=0;y<ny;y++)
 	{
-		for(y=0;y<ny;y++)
+		for(x=0;x<nx;x++)
 		{
 			scale2=scale1*dx*dy; // Normalization Constant
-			fprintf(reflFile_out," %E ",(double)HostMem->Rd_xy[x*ny+y]/scale2);
+			fprintf(reflFile_out," %E ",(double)HostMem->Rd_xy[y*nx+x]/scale2);
 		}
 		fprintf(reflFile_out," \n ");
 	}

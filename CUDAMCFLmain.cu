@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
 
   printf("Running PHD simulation...\n");
 
-  simulations[0].dir = 0.0f;        // Isotropic source
+  //simulations[0].dir = 0.0f;        // Isotropic source
 
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
