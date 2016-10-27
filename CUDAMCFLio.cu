@@ -123,7 +123,7 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 	transFile_out = fopen (filenametrans , "w");
 	if (transFile_out == NULL){perror ("Error opening transmission output file");return 0;}
 
-	for(y=0;x<ny;y++)
+	for(y=0;y<ny;y++)
 	{
 		for(x=0;x<nx;x++)
 		{

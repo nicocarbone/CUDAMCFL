@@ -220,6 +220,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
+  // Last Bulk
+  const unsigned short last_bulk = *n_bulks_dc+1;
+
   unsigned long long int x=DeviceMem.x[begin+tx];//coherent
 	unsigned int a=DeviceMem.a[begin+tx];//coherent
 
@@ -258,7 +261,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     //Check for downward reflection/transmission and move to surface
 		if(p.z+s*p.dz>(*esp_dc)){
-      new_bulk = 0;
+      new_bulk = last_bulk;
       //side_scape = 0;
       s = __fdividef((*esp_dc)-p.z,p.dz);
     }
@@ -272,7 +275,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 		//if(p.z<0.) p.z=0.;//needed? TODO
 
     // Retrieve bulk position
-    if(new_bulk!=0) {
+    if(new_bulk!=0 && new_bulk!=last_bulk) {
       if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc)){
         // Inside space of 3D matrix
         // Index of the current voxel
@@ -317,28 +320,30 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
 
     if(p.bulkpos == 0){
-      // Photon is outside bulk
+      // Photon is outside bulk and reflected
       if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
         // Photon is detectable
-        if(p.z <= 0.) {
-          // Photon reflected
-          // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-          index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-                      __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-				  if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
+        // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+        index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+              __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
-        if(p.z >= (*esp_dc)) {
-          // Photon transmitted
-          // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-          index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-                      __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-          if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
-          //TODO why LLONG_MAX?
-        }
-      }
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
       s = 0.0f;
     }
+
+    if(p.bulkpos == last_bulk){
+      // Photon is outside bulk and transmitted
+      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
+        // Photon transmitted
+        // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+        index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+              __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+        if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
+        }
+      p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
+      s = 0.0f;
+      }
 
 		w=0;
 
