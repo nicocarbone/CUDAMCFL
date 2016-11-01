@@ -398,7 +398,15 @@ int main(int argc, char *argv[]) {
     for (int n = 0; n < simulations[0].n_layers + 2;
         n++) { // Set mua to fluorescence value for every layer
         simulations[0].layers[n].mua = simulations[0].layers[n].muaf;
+        printf("%f \n", simulations[0].layers[n].mua);
     }
+
+    for (int n = 0; n < simulations[0].n_bulks + 2;
+        n++) { // Set mua to fluorescence value for every layer
+        simulations[0].bulks[n].mua = simulations[0].bulks[n].muaf;
+        printf("%f \n", simulations[0].bulks[n].mua);
+    }
+
     simulations[0].number_of_photons = (unsigned long long)simulations[0].number_of_photons_per_voxel; // Number of photons per voxel
     simulations[0].dir = 0.0f;        // Isotropic source
     simulations[0].fhd_activated = 0; // Don't accumulate fhd
@@ -505,9 +513,12 @@ int main(int argc, char *argv[]) {
     }
 
     printf("\n\nFlourescence simulation finished!\n");
-    printf("Voxels inside inclusion: %li\n", voxel_inside);
-    printf("Voxels outside inclusion: %li\n", voxel_outside);
-    printf("Voxels failed: %i\n", count_failed);
+
+    if (simulations[0].bulk_method == 1){
+      printf("Voxels inside inclusion: %li\n", voxel_inside);
+      printf("Voxels outside inclusion: %li\n", voxel_outside);
+      printf("Voxels failed: %i\n", count_failed);
+    }
 
     printf("Writing results file...\n"); // TODO
     FILE *fhdFile_out;

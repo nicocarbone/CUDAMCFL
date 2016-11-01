@@ -62,15 +62,15 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 	char mystring[STR_LEN];
 
 	// Copy stuff from sim->det to make things more readable:
-	double dx=(double)sim->det.dx;		// Detection grid resolution, x-direction [cm]
-	double dy=(double)sim->det.dy;		// Detection grid resolution, y-direction [cm]
+	const double dx=(double)sim->det.dx;		// Detection grid resolution, x-direction [cm]
+	const double dy=(double)sim->det.dy;		// Detection grid resolution, y-direction [cm]
 
-	int nx=sim->det.nx;			// Number of grid elements in x-direction
-	int ny=sim->det.ny;			// Number of grid elements in y-direction
+	const int nx=sim->det.nx;			// Number of grid elements in x-direction
+	const int ny=sim->det.ny;			// Number of grid elements in y-direction
 
 	int x,y;
 
-	double scale1 = (double)0xFFFFFFFF*(double)sim->number_of_photons; // Number of photons (used to normalize)
+	const double scale1 = (double)0xFFFFFFFF*(double)sim->number_of_photons; // Number of photons (used to normalize)
 	double scale2;
 
 	// Open the input and output files
