@@ -297,12 +297,8 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		if (itemp[0]==1 || itemp[0]==2) (*simulations)[i].fhd_activated=1; // Activate FHD collection for fluorescence simulation, deactivate otherwize
 			else (*simulations)[i].fhd_activated=0;
 		if ((*simulations)[i].do_fl_sim==0) printf("Fluorescence simulation de-activated. \n\n");
-			else if ((*simulations)[i].do_fl_sim==1) {
-				printf("Fluorescence simulation activated (reflectance). \n");
-				printf("Number of photons per voxel to be simulated: %i\n\n", (*simulations)[i].number_of_photons_per_voxel);
-			}
-			else if ((*simulations)[i].do_fl_sim==2) {
-				printf("Fluorescence simulation activated (transmitance). \n");
+			else if ((*simulations)[i].do_fl_sim==1 || (*simulations)[i].do_fl_sim==2) {
+				printf("Fluorescence simulation activated. \n");
 				printf("Number of photons per voxel to be simulated: %i\n\n", (*simulations)[i].number_of_photons_per_voxel);
 			}
 			else {perror ("Error reading fluorescence simulaion flag");return 0;}

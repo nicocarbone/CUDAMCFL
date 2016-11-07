@@ -160,7 +160,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
 // wrapper for device code - fluorescence Simulation
 unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long long *x,
-                       unsigned int *a, unsigned long long *tempvoxel) {
+                       unsigned int *a, unsigned long long *tempvoxelR, unsigned long long *tempvoxelT) {
   MemStruct DeviceMem;
   MemStruct HostMem;
   unsigned int threads_active_total = 1;
@@ -223,7 +223,7 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
     if (i > 10000) {
       // If we are still running after 10000 steps, something definetly went wrong.
       printf("\nWARNING: Breaking out of loop...\n");
-      break;
+      return 0;
     }
   }
 
@@ -232,9 +232,9 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
 
   for (int ijk = 0; ijk < xy_size; ijk++) {
     // Reflection
-    if (simulation->do_fl_sim == 1) tempvoxel[ijk] = HostMem.Rd_xy[ijk];
+    tempvoxelR[ijk] = HostMem.Rd_xy[ijk];
     // Transmission
-    if (simulation->do_fl_sim == 2) tempvoxel[ijk] = HostMem.Tt_xy[ijk];
+    tempvoxelT[ijk] = HostMem.Tt_xy[ijk];
   }
 
   unsigned long long photons_finished = *HostMem.num_terminated_photons;
@@ -253,7 +253,8 @@ int main(int argc, char *argv[]) {
       (unsigned long long)time(NULL); // Default, use time(NULL) as seed
   int ignoreAdetection = 0;
   char *filename;
-  char *filenamefl;
+  char *filenameflR;
+  char *filenameflT;
   //char *filenamefl3dx;
   //char *filenamefl3dy;
   //char *filenamefl3dz;
@@ -378,7 +379,7 @@ int main(int argc, char *argv[]) {
     const double dy = simulations[0].det.dy;
 
     // Initialize arrays
-    double *Fl_Het;          // Final fluorescence image
+    double *Fl_HetR, *Fl_HetT;          // Final fluorescence image
     long voxel_finished = 0; // Nro of voxel simulated
     long voxel_inside = 0;   // Nro of voxel simulated inside inclusion
     long voxel_outside = 0;  // Nro of voxel simulated outside inclusion
@@ -389,9 +390,14 @@ int main(int argc, char *argv[]) {
         time2, time3; // Variable to store the timestamps used for run time stimation
 
     // Allocate and initialize to zero image matrix
-    Fl_Het = (double *)malloc(xy_size * sizeof(double));
+    Fl_HetR = (double *)malloc(xy_size * sizeof(double));
     for (int ijk = 0; ijk < xy_size; ijk++) {
-      Fl_Het[ijk] = 0.0;
+      Fl_HetR[ijk] = 0.0;
+    }
+    // Allocate and initialize to zero image matrix
+    Fl_HetT = (double *)malloc(xy_size * sizeof(double));
+    for (int ijk = 0; ijk < xy_size; ijk++) {
+      Fl_HetT[ijk] = 0.0;
     }
 
     // Simulations parameters
@@ -445,10 +451,13 @@ int main(int argc, char *argv[]) {
           }
 
           // Do the voxel simulation
-          unsigned long long *tempret;
-          tempret =
+          unsigned long long *tempretR;
+          tempretR =
               (unsigned long long *)malloc(xy_size * sizeof(unsigned long long));
-          unsigned long long voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempret);
+          unsigned long long *tempretT;
+          tempretT =
+              (unsigned long long *)malloc(xy_size * sizeof(unsigned long long));
+          unsigned long long voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempretR, tempretT);
 
           // Check if inside inclusion and calculate scale value accordingly
           if (simulations[0].bulk_method == 1){
@@ -491,12 +500,15 @@ int main(int argc, char *argv[]) {
 
           // Accumulate image
           for (int ij = 0; ij < xy_size; ij++) {
-            double tempvw = voxelw * (double)tempret[ij];
-            if (Fl_Het[ij] + tempvw < DBL_MAX) Fl_Het[ij] += tempvw/(dx*dy);
+            double tempvwR = voxelw * (double)tempretR[ij];
+            double tempvwT = voxelw * (double)tempretT[ij];
+            if (Fl_HetR[ij] + tempvwR < DBL_MAX) Fl_HetR[ij] += tempvwR/(dx*dy);
+            if (Fl_HetT[ij] + tempvwT < DBL_MAX) Fl_HetT[ij] += tempvwT/(dx*dy);
 					}
           voxel_finished++;
 
-          free(tempret);
+          free(tempretR);
+          free(tempretT);
 
           if (fmod(voxel_finished, 200) == 0) printf("."); fflush(stdout);
           if (fmod(voxel_finished, 10000) == 0)
@@ -520,27 +532,49 @@ int main(int argc, char *argv[]) {
       printf("Voxels failed: %i\n", count_failed);
     }
 
-    printf("Writing results file...\n"); // TODO
-    FILE *fhdFile_out;
-    filenamefl = simulations[0].outp_filename;
-    strcat(filenamefl, "_Fl.dat");
+    printf("Writing results files...\n"); // TODO
+    FILE *fhdRFile_out;
+    filenameflR = simulations[0].outp_filename;
+    strcat(filenameflR, "_FlR.dat");
 
-    fhdFile_out = fopen(filenamefl, "w");
-    if (fhdFile_out == NULL) {
+    fhdRFile_out = fopen(filenameflR, "w");
+    if (fhdRFile_out == NULL) {
       perror("Error opening output file");
       return 0;
     }
 
     for (int y = 0; y < ny2; y++) {
       for (int x = 0; x < nx2; x++) {
-        fprintf(fhdFile_out, " %E ", Fl_Het[y * nx2 + x]);
+        fprintf(fhdRFile_out, " %E ", Fl_HetR[y * nx2 + x]);
       }
-      fprintf(fhdFile_out, " \n ");
+      fprintf(fhdRFile_out, " \n ");
     }
 
-    fclose(fhdFile_out);
+    fclose(fhdRFile_out);
     // Free memory
-    free(Fl_Het);
+    free(Fl_HetR);
+
+    FILE *fhdTFile_out;
+    filenameflT = simulations[0].outp_filename;
+    strcat(filenameflT, "_FlT.dat");
+
+    fhdTFile_out = fopen(filenameflT, "w");
+    if (fhdTFile_out == NULL) {
+      perror("Error opening output file");
+      return 0;
+    }
+
+    for (int y = 0; y < ny2; y++) {
+      for (int x = 0; x < nx2; x++) {
+        fprintf(fhdTFile_out, " %E ", Fl_HetT[y * nx2 + x]);
+      }
+      fprintf(fhdTFile_out, " \n ");
+    }
+
+    fclose(fhdTFile_out);
+    // Free memory
+    free(Fl_HetT);
+
     time3 = clock();
     printf("Fluorescence simulation time: %.2f sec\n\n",
          (double)(time3 - time1) /CLOCKS_PER_SEC);
