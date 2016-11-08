@@ -413,15 +413,18 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
 	  p->dz = costheta;
 
     p->weight = 0xFFFFFFFF; // no specular reflection (Initial weight: max int32)
-    if ((*bulk_method_dc) == 2 && p->z<=(*esp_dc)){
-      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc)){ //Inside space of fhd
-        //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-        int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+    if ((*bulk_method_dc) == 2){
+      if (p->z<(*esp_dc)){
+        if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc)){ //Inside space of fhd
+          //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+          int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
                   + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
                   + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
-        p->bulkpos = DeviceMem.bulk_info[index];
+          p->bulkpos = DeviceMem.bulk_info[index];
+        }
+        else p->bulkpos = 1;
       }
-      else p->bulkpos = 1;
+      else p->bulkpos = *n_bulks_dc+1;
     }
     else p->bulkpos = 0;
 
@@ -450,17 +453,20 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
     p->weight = *start_weight_dc; // specular reflection at boundary
 
     if ((*bulk_method_dc) == 2){
-      if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc) && p->z<(*esp_dc)){
-          // Inside space of fhd
-          // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+      if (p->z<(*esp_dc)){
+        if(fabsf(p->x)<2*(*esp_dc) && fabsf(p->y)<2*(*esp_dc)){ //Inside space of fhd
+          //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
           int index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
                   + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
                   + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
-          p->bulkpos = DeviceMem.bulk_info[index];
+                  p->bulkpos = DeviceMem.bulk_info[index];
         }
-      else p->bulkpos = 0;
+        else p->bulkpos = 1;
+      }
+      else p->bulkpos = *n_bulks_dc+1;
     }
     else p->bulkpos = 0;
+
   }
 
 	p->step= 0;

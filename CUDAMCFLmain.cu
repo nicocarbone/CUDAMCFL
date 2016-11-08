@@ -534,7 +534,8 @@ int main(int argc, char *argv[]) {
 
     printf("Writing results files...\n"); // TODO
     FILE *fhdRFile_out;
-    filenameflR = simulations[0].outp_filename;
+    char filenameflR[STR_LEN];
+  	for (int ic=0; ic<STR_LEN; ic++) filenameflR[ic] = simulations[0].outp_filename[ic];
     strcat(filenameflR, "_FlR.dat");
 
     fhdRFile_out = fopen(filenameflR, "w");
@@ -555,7 +556,8 @@ int main(int argc, char *argv[]) {
     free(Fl_HetR);
 
     FILE *fhdTFile_out;
-    filenameflT = simulations[0].outp_filename;
+    char filenameflT[STR_LEN];
+  	for (int ic=0; ic<STR_LEN; ic++) filenameflT[ic] = simulations[0].outp_filename[ic];
     strcat(filenameflT, "_FlT.dat");
 
     fhdTFile_out = fopen(filenameflT, "w");
