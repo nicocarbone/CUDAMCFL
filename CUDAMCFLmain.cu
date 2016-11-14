@@ -25,7 +25,6 @@
 #include <float.h> //for FLT_MAX
 #include <limits.h>
 #include <stdio.h>
-//#include <string.h>
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
@@ -39,7 +38,6 @@ __device__ __constant__ unsigned int ignoreAdetection_dc[1];
 __device__ __constant__ unsigned int fhd_activated_dc[1];
 __device__ __constant__ unsigned int bulk_method_dc[1];
 __device__ __constant__ float xi_dc[1];
-//__device__ short *bulk_info_dc;
 __device__ __constant__ float yi_dc[1];
 __device__ __constant__ float zi_dc[1];
 __device__ __constant__ float dir_dc[1];
@@ -64,7 +62,6 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   const int num_y = (int)(4 * (simulation->esp) * (float)simulation->grid_size);
   const int num_z = (int)((simulation->esp) * (float)simulation->grid_size);
   const int fhd_size = num_x * num_y * num_z;
-  //const int fhd_size = num_x + num_x * (num_y + num_z * num_y); //x + HEIGHT* (y + WIDTH* z)
 
   cudaError_t cudastat;
   clock_t time1, time2;
@@ -125,13 +122,6 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
     if (fmod(i, 10000) == 0)
       printf("\nRun %u, %llu photons simulated\n", i,
              *HostMem.num_terminated_photons);
-
-    //if (i > 100000) {
-    // If we are still running after 100000 steps, something definetly went wrong.
-    //   printf("\nWARNING: Breaking out of loop...\n");
-    //   break;
-    //}
-
   }
 
   CopyDeviceToHostMem(&HostMem, &DeviceMem, simulation);
@@ -149,8 +139,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
   // Normalize and write output matrix
   for (int xyz = 0; xyz < fhd_size; xyz++) {
-    tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*photons_finished));//*(double)NUMSTEPS_GPU;//((double)HostMem.fhd[xyz]+(double)FLT_MAX)*10. / photons_finished;
-                   //* ((1/(float)simulation->grid_size) * (1/(float)simulation->grid_size) * (1/(float)simulation->grid_size)));
+    tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*photons_finished));
   }
 
   printf ("Photons simulated: %llu\n\n", photons_finished);
@@ -191,10 +180,8 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
     printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
   i = 0;
-  //int watchdog = 0;
   while (threads_active_total > 0) {
     i++;
-    //watchdog++;
     // run the kernel
     if (simulation->bulk_method == 1){
       MCd<<<dimGrid, dimBlock>>>(DeviceMem);
@@ -255,10 +242,6 @@ int main(int argc, char *argv[]) {
   char *filename;
   char *filenameflR;
   char *filenameflT;
-  //char *filenamefl3dx;
-  //char *filenamefl3dy;
-  //char *filenamefl3dz;
-  //char *filenamefl3dzInc;
   unsigned long fhd_sim_photons;
 
   if (argc < 2) {
@@ -297,14 +280,7 @@ int main(int argc, char *argv[]) {
   const int num_x = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
   const int num_y = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
   const int num_z = (int)((simulations[0].esp) * simulations[0].grid_size);
-  //const int fhd_size = num_x + num_x * (num_y + num_y * num_z); //x + HEIGHT* (y + WIDTH* z)
   const int fhd_size = num_x * num_y * num_z; //x + HEIGHT* (y + WIDTH* z)
-
-  // FHD simulation
-  // Perform all the simulations TODO
-  // for(i=0;i<n_simulations;i++)
-  //{
-  // Run a simulation
 
   const unsigned long long number_phd_photons = simulations[0].number_of_photons;
 
@@ -315,9 +291,6 @@ int main(int argc, char *argv[]) {
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
-  //}
-
-
 
   // Outputting FHD files for debug
   printf("Writing PHD files...\n"); // TODO
@@ -383,7 +356,6 @@ int main(int argc, char *argv[]) {
     long voxel_finished = 0; // Nro of voxel simulated
     long voxel_inside = 0;   // Nro of voxel simulated inside inclusion
     long voxel_outside = 0;  // Nro of voxel simulated outside inclusion
-    //const long for_size = num_x * num_y * num_z; // Total number of voxels to be simulated
     float xi, yi, zi;          // Temporal variable to store the voxel coordinates
     double voxelw; // Temporal variable to store the voxel scale factor
     clock_t time1,
@@ -404,13 +376,11 @@ int main(int argc, char *argv[]) {
     for (int n = 0; n < simulations[0].n_layers + 2;
         n++) { // Set mua to fluorescence value for every layer
         simulations[0].layers[n].mua = simulations[0].layers[n].muaf;
-        printf("%f \n", simulations[0].layers[n].mua);
     }
 
     for (int n = 0; n < simulations[0].n_bulks + 2;
         n++) { // Set mua to fluorescence value for every layer
         simulations[0].bulks[n].mua = simulations[0].bulks[n].muaf;
-        printf("%f \n", simulations[0].bulks[n].mua);
     }
 
     simulations[0].number_of_photons = (unsigned long long)simulations[0].number_of_photons_per_voxel; // Number of photons per voxel
