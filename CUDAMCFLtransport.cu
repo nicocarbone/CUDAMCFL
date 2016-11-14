@@ -263,7 +263,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
     }
 
     //Check for downward reflection/transmission and move to surface
-		if(p.z+s*p.dz>=(*esp_dc)){
+		if(p.z+s*p.dz>(*esp_dc)){
       new_bulk = last_bulk;
       //side_scape = 0;
       s = __fdividef((*esp_dc)-p.z,p.dz);
