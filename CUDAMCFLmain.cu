@@ -25,6 +25,7 @@
 #include <float.h> //for FLT_MAX
 #include <limits.h>
 #include <stdio.h>
+#include "cuda_profiler_api.h"
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
@@ -280,7 +281,14 @@ int main(int argc, char *argv[]) {
   const int num_x = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
   const int num_y = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
   const int num_z = (int)((simulations[0].esp) * simulations[0].grid_size);
+  //const int fhd_size = num_x + num_x * (num_y + num_y * num_z); //x + HEIGHT* (y + WIDTH* z)
   const int fhd_size = num_x * num_y * num_z; //x + HEIGHT* (y + WIDTH* z)
+
+  // FHD simulation
+  // Perform all the simulations TODO
+  // for(i=0;i<n_simulations;i++)
+  //{
+  // Run a simulation
 
   const unsigned long long number_phd_photons = simulations[0].number_of_photons;
 
@@ -291,6 +299,9 @@ int main(int argc, char *argv[]) {
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
+  //}
+
+
 
   // Outputting FHD files for debug
   printf("Writing PHD files...\n"); // TODO
@@ -356,6 +367,7 @@ int main(int argc, char *argv[]) {
     long voxel_finished = 0; // Nro of voxel simulated
     long voxel_inside = 0;   // Nro of voxel simulated inside inclusion
     long voxel_outside = 0;  // Nro of voxel simulated outside inclusion
+    //const long for_size = num_x * num_y * num_z; // Total number of voxels to be simulated
     float xi, yi, zi;          // Temporal variable to store the voxel coordinates
     double voxelw; // Temporal variable to store the voxel scale factor
     clock_t time1,
@@ -551,7 +563,11 @@ int main(int argc, char *argv[]) {
     printf("Fluorescence simulation time: %.2f sec\n\n",
          (double)(time3 - time1) /CLOCKS_PER_SEC);
   }
-  free(Fx);
+
+  cudaProfilerStop();
+
+  //if (Fx != NULL)
+  //free(Fx);
   //FreeSimulationStruct(simulations, n_simulations);
 
   if (fhd_sim_photons == number_phd_photons &&

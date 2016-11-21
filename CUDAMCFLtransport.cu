@@ -216,8 +216,6 @@ __global__ void MCd3D(MemStruct DeviceMem)
   // 3D bulk matrix width and height
   const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
   const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
-  const unsigned int num_z = __float2uint_rn((*esp_dc)*__int2float_rn(*grid_size_dc));
-
 
   // 2D output matrix size
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
@@ -279,7 +277,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     // Retrieve bulk position
     if(new_bulk!=0 && new_bulk!=last_bulk) {
-      if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc)){
+      if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){
         // Inside space of 3D matrix
         // Index of the current voxel
         // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)

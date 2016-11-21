@@ -523,7 +523,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
     		int value = c - '0';
 				if (read_count <= fhd_size) {
 					(*simulations)[i].bulk_info[read_count] = value;
-					//printf("%i", value);
+					//if (value != "1" && value != "2") printf("%i", value);
 				}
 				read_count++;
   		}
