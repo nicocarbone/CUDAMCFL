@@ -1,7 +1,6 @@
 # CUDAMCFL
 
-Montecarlo routine modeling light propagation in tubid media with embedded fluorophores and inhomogeneities.
-
+Monte Carlo simulation software for light propagation in fluorescent turbid media, accelerated by GPU (graphic processing unit). The code is based on previous work by Alerstam et al and Wang et al, with the addition of a voxelized medium without symmetries and with an inhomogeneous distribution of absorbers and fluorescent markers.
 
 CUDAMCFLmain.cu
 -------------------
