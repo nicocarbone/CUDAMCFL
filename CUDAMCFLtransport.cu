@@ -24,25 +24,27 @@ __global__ void LaunchPhoton_Global(MemStruct);
 __device__ void Spin(PhotonStruct*, float,unsigned long long*,unsigned int*);
 __device__ unsigned int Reflect(PhotonStruct*, int, unsigned long long*, unsigned int*, int);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, unsigned long long*, unsigned int*);
-//__device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 
 
 __global__ void MCd(MemStruct DeviceMem)
 {
-  //Block index
+  // Block index
   int bx=blockIdx.x;
 
-  //Thread index
+  // Thread index
   int tx=threadIdx.x;
 
-  //First element processed by the block
+  // First element processed by the block
   int begin=NUM_THREADS_PER_BLOCK*bx;
 
+  // Bulk thickness
 	const float esp=layers_dc[(*n_layers_dc)].z_max;
 
+  // 3D bulk matrix width and height
   const unsigned int num_x = __float2uint_rn(4*esp*__int2float_rn(*grid_size_dc));
   const unsigned int num_y = __float2uint_rn(4*esp*__int2float_rn(*grid_size_dc));
 
+  // Size of output images
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
@@ -63,6 +65,8 @@ __global__ void MCd(MemStruct DeviceMem)
 
 	for(;ii<NUMSTEPS_GPU;ii++) {
     //this is the main while loop
+
+    // Check if inside spherical inclusion
     if((((p.x-inclusion_dc[0].x)*(p.x-inclusion_dc[0].x)) +
        ((p.y-inclusion_dc[0].y)*(p.y-inclusion_dc[0].y)) +
        ((p.z-inclusion_dc[0].z)*(p.z-inclusion_dc[0].z))) <=
@@ -72,7 +76,6 @@ __global__ void MCd(MemStruct DeviceMem)
 				s = -__logf(rand_MWC_oc(&x,&a))*inclusion_dc[0].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
 			else
 				s = 2.0f;//temporary, say the step in glass is 100 cm.
-
 		}
 		else 	{
       // Outside inclusion
@@ -105,7 +108,7 @@ __global__ void MCd(MemStruct DeviceMem)
     if(p.z>layers_dc[p.layer].z_max)p.z=layers_dc[p.layer].z_max;//needed? TODO
 		if(p.z<layers_dc[p.layer].z_min)p.z=layers_dc[p.layer].z_min;//needed? TODO
 
-    //Accumulate foton hitting density
+    // Accumulate photon hitting density if needed
     if (*fhd_activated_dc == 1){
       if(fabsf(p.x)<2*esp && fabsf(p.y)<2*esp && p.z<esp){ //Inside space of fhd
         //Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
@@ -117,30 +120,30 @@ __global__ void MCd(MemStruct DeviceMem)
       }
     }
 
-    //if (p.step<(MAX_STEP-1)) p.step ++;
-
+    // New layer?
 		if(new_layer!=p.layer) {
-			// set the remaining step length to 0
+      // set the remaining step length to 0
 			s = 0.0f;
+
       if(Reflect(&p,new_layer,&x,&a,1)==0u) {
         // Photon is transmitted
-				if(new_layer == 0){
+
+        if(new_layer == 0){
           // Diffuse reflectance
 			    if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
-               // Inside detector
-               // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-               index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
+            // Inside detector. Calculates the position in the exit matrix
+            // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+            index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
                       __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-					     if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
+					  if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 					}
           p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
         }
 
         if(new_layer > *n_layers_dc) {
-          // Transmitted
+          // Diffuse transmitance
 					if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
-             // Inside detector
-						 // Calculates the position in the exit matrix
+             // Inside detector. Calculates the position in the exit matrix
              // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
              index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
                     __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
@@ -217,7 +220,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
   const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
   const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
 
-  // 2D output matrix size
+  // Size of output images
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
@@ -278,8 +281,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
     // Retrieve bulk position
     if(new_bulk!=0 && new_bulk!=last_bulk) {
       if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){
-        // Inside space of 3D matrix
-        // Index of the current voxel
+        // Inside space of 3D matrix. Calculate index of the current voxel
         // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
         index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
               + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
@@ -290,33 +292,24 @@ __global__ void MCd3D(MemStruct DeviceMem)
         // Photon scaped to the sides
         // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
         new_bulk = 1;
-        //side_scape = 1;
-      }
+        }
     }
 
     unsigned int reflected;
 
 		if(new_bulk != p.bulkpos) {
       // If changing voxel do Reflect
-      //if (side_scape == 0)
       reflected = Reflect(&p,new_bulk,&x,&a,2);
-      //if (side_scape == 1) {
-      //  p.bulkpos = 0;
-        // TODO: side Reflect
-      //}
-      // TODO: what to do if stepping out of a "glass" voxel?
     }
 
-    // Accumulate PHD if needed
+    // Accumulate photon hitting density if needed
     if(fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc) && *fhd_activated_dc == 1) {
-      // Inside space of 3D matrix
-      // Index of the current voxel
+      // Inside space of 3D matrix. Calculate index of the current voxel
       // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
       index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
             + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
             + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
-      //if (index < num_x*num_y*num_z)
-        if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically
+      if (DeviceMem.fhd[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.fhd[index], p.weight); // Check for overflow and add atomically
       //TODO why LLONG_MAX?
     }
 
@@ -387,7 +380,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned int* a, MemStruct DeviceMem)
 {
 
-  //const float esp = *esp_dc;
+  // 3D bulk matrix width and height
   const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
   const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
 
@@ -643,7 +636,7 @@ __device__ unsigned int PhotonSurvive(PhotonStruct* p, unsigned long long* x, un
 }
 
 /*
-//Device function to add an unsigned integer to an unsigned long long using CUDA Compute Capability 1.1
+//Device function to add an unsigned integer to an unsigned long long using CUDA. Needed for Compute Capability 1.1
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add)
 {
 	if(atomicAdd((unsigned int*)address,add)+add<add)

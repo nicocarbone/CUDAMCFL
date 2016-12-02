@@ -1,6 +1,10 @@
 /////////////////////////////////////////////////////////////
 //
-// TODO: CUDAMCFL Description
+// Monte Carlo simulation software for light propagation in fluorescent turbid media,
+// accelerated by GPU (graphic processing unit).
+// The code is based on previous work by Alerstam et al and Wang et al,
+// with the addition of a voxelized medium without symmetries and with an
+// inhomogeneous distribution of absorbers and fluorescent marker
 //
 ///////////////////////////////////////////////////////////////
 
@@ -281,27 +285,19 @@ int main(int argc, char *argv[]) {
   const int num_x = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
   const int num_y = (int)(4 * (simulations[0].esp) * simulations[0].grid_size);
   const int num_z = (int)((simulations[0].esp) * simulations[0].grid_size);
-  //const int fhd_size = num_x + num_x * (num_y + num_y * num_z); //x + HEIGHT* (y + WIDTH* z)
+
   const int fhd_size = num_x * num_y * num_z; //x + HEIGHT* (y + WIDTH* z)
 
   // FHD simulation
-  // Perform all the simulations TODO
-  // for(i=0;i<n_simulations;i++)
-  //{
   // Run a simulation
 
   const unsigned long long number_phd_photons = simulations[0].number_of_photons;
 
   printf("Running PHD simulation...\n");
 
-  //simulations[0].dir = 0.0f;        // Isotropic source
-
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
-  //}
-
-
 
   // Outputting FHD files for debug
   printf("Writing PHD files...\n"); // TODO
