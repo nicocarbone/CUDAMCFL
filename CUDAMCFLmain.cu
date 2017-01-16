@@ -26,7 +26,7 @@
 
 #include "CUDAMCFL.h"
 #include "cutil.h"
-#include <float.h> //for FLT_MAX
+//#include <float.h> //for FLT_MAX
 #include <limits.h>
 #include <stdio.h>
 #include "cuda_profiler_api.h"
@@ -123,8 +123,9 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
              (double)(clock() - time1) / CLOCKS_PER_SEC *
                  (double)(simulation->number_of_photons /
                           *HostMem.num_terminated_photons));
-    if (fmod(i, 200) == 0) printf("."); fflush(stdout);
-    if (fmod(i, 10000) == 0)
+//    if (fmod(i, 200u) == 0) printf("."); fflush(stdout);
+    if (i % 200 == 0) printf("."); fflush(stdout);
+    if (i % 10000 == 0)
       printf("\nRun %u, %llu photons simulated\n", i,
              *HostMem.num_terminated_photons);
   }
@@ -488,8 +489,8 @@ int main(int argc, char *argv[]) {
           free(tempretR);
           free(tempretT);
 
-          if (fmod(voxel_finished, 200) == 0) printf("."); fflush(stdout);
-          if (fmod(voxel_finished, 10000) == 0)
+          if (voxel_finished % 200 == 0) printf("."); fflush(stdout);
+          if (voxel_finished % 10000 == 0)
             printf("\n%li of %li voxels finished\n", voxel_finished, fhd_size);
           if (voxel_finished == 99) { // Second timestamp after 99 voxels run (so
                                     // it displays before the first progression
