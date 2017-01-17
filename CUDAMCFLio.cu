@@ -14,6 +14,7 @@
     along with CUDAMCFL.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//pepe2
 #define NFLOATS 12 // Max number of floats per line
 #define NINTS 5 // Max number of integeres per line
 
