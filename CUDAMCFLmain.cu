@@ -60,6 +60,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   MemStruct DeviceMem;
   MemStruct HostMem;
   unsigned int threads_active_total = 1;
+  unsigned long long num_terminated_photons = 0;
   unsigned int i, ii;
 
   // Output matrix size
@@ -94,12 +95,16 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   i = 0;
   while (threads_active_total > 0) {
     i++;
-    // run the kernel
-    if (simulation->bulk_method == 1){
-      MCd<<<dimGrid, dimBlock>>>(DeviceMem);
-    }
-    else if (simulation->bulk_method == 2) {
-      MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+    // run the kernel on each GPU
+    for (int f = 0;f<num_gpus;f++) {
+      cudaSetDevice(f);
+      if (simulation->bulk_method == 1){
+        MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+      }
+      else if (simulation->bulk_method == 2) {
+        MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+      }
+
     }
 
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
@@ -108,49 +113,54 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
       printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
     // Copy thread_active from device to host
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active,
-                              NUM_THREADS * sizeof(unsigned int),
-                              cudaMemcpyDeviceToHost));
-    threads_active_total = 0;
-    for (ii = 0; ii < NUM_THREADS; ii++)
-      threads_active_total += HostMem.thread_active[ii];
+    for (int f = 0;f<num_gpus;f++) {
+      cudaSetDevice(f);
+      CUDA_SAFE_CALL(cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active,
+                                NUM_THREADS * sizeof(unsigned int),
+                                cudaMemcpyDeviceToHost));
+      threads_active_total = 0;
+      for (ii = 0; ii < NUM_THREADS; ii++)
+        threads_active_total += HostMem.thread_active[ii];
 
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,
-                              DeviceMem.num_terminated_photons,
-                              sizeof(unsigned long long), cudaMemcpyDeviceToHost));
+      CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,
+                                DeviceMem.num_terminated_photons,
+                                sizeof(unsigned long long), cudaMemcpyDeviceToHost));
+      num_terminated_photons += *HostMem.num_terminated_photons;
+    }
+
     if (i == 50)
       printf("Estimated PHD simulation time: %.0f secs.\n\n",
              (double)(clock() - time1) / CLOCKS_PER_SEC *
                  (double)(simulation->number_of_photons /
-                          *HostMem.num_terminated_photons));
+                          num_terminated_photons));
 //    if (fmod(i, 200u) == 0) printf("."); fflush(stdout);
     if (i % 200 == 0) printf("."); fflush(stdout);
     if (i % 10000 == 0)
       printf("\nRun %u, %llu photons simulated\n", i,
-             *HostMem.num_terminated_photons);
+             num_terminated_photons);
   }
 
-  CopyDeviceToHostMem(&HostMem, &DeviceMem, simulation);
-
+  for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+    CopyDeviceToHostMem(&HostMem, &DeviceMem, simulation);
+    // Normalize and write output matrix
+    for (int xyz = 0; xyz < fhd_size; xyz++) {
+      tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*num_terminated_photons));
+    }
+  }
+  
   time2 = clock();
 
   printf("\nSimulation time: %.2f sec\n\n",
          (double)(time2 - time1) / CLOCKS_PER_SEC);
 
   printf("Writing excitation results...\n");
-  Write_Simulation_Results(&HostMem, simulation, time2-time1);
+  //Write_Simulation_Results(&HostMem, simulation, time2-time1); TODO
   printf("PHD Simulation done!\n");
 
-  unsigned long long photons_finished = *HostMem.num_terminated_photons;
-
-  // Normalize and write output matrix
-  for (int xyz = 0; xyz < fhd_size; xyz++) {
-    tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*photons_finished));
-  }
-
-  printf ("Photons simulated: %llu\n\n", photons_finished);
+  printf ("Photons simulated: %llu\n\n", num_terminated_photons);
   FreeMemStructs(&HostMem, &DeviceMem);
-  return photons_finished;
+  return num_terminated_photons;
 }
 
 // wrapper for device code - fluorescence Simulation
@@ -295,6 +305,10 @@ int main(int argc, char *argv[]) {
   const unsigned long long number_phd_photons = simulations[0].number_of_photons;
 
   printf("Running PHD simulation...\n");
+
+  int num_gpus = -1;
+  checkCudaErrors(cudaGetDeviceCount(&num_gpus));
+  printf("There are %d gpus.\n", num_gpus);
 
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));

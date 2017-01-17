@@ -44,54 +44,60 @@ int InitDCMem(SimulationStruct* sim)
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
+	int num_gpus = -1;
+  checkCudaErrors(cudaGetDeviceCount(&num_gpus));
+
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
 	// Copy fhd flag
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int)) );
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int)) );
 
 	// Copy bulk method flag
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_method_dc,&(sim->bulk_method),sizeof(unsigned int)) );
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_method_dc,&(sim->bulk_method),sizeof(unsigned int)) );
 
 	// Copy det-data to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(det_dc,&(sim->det),sizeof(DetStruct)) );
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(det_dc,&(sim->det),sizeof(DetStruct)) );
 
 	// Copy inclusion data to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(inclusion_dc,&(sim->inclusion),sizeof(IncStruct)) );
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(inclusion_dc,&(sim->inclusion),sizeof(IncStruct)) );
 
 	// Copy number of layers to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(n_layers_dc,&(sim->n_layers),sizeof(unsigned int)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(n_layers_dc,&(sim->n_layers),sizeof(unsigned int)));
 
 	// Copy number of bulk descriptors to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(n_bulks_dc,&(sim->n_bulks),sizeof(unsigned int)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(n_bulks_dc,&(sim->n_bulks),sizeof(unsigned int)));
 
 	// Copy start_weight_dc to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(start_weight_dc,&(sim->start_weight),sizeof(unsigned int)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(start_weight_dc,&(sim->start_weight),sizeof(unsigned int)));
 
 	// Copy grid_size_dc to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(grid_size_dc,&(sim->grid_size),sizeof(unsigned int)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(grid_size_dc,&(sim->grid_size),sizeof(unsigned int)));
 
 	// Copy layer data to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct)) );
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct)) );
 
 	// Copy bulk data to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulks_dc,sim->bulks,(sim->n_bulks+2)*sizeof(BulkStruct)) );
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulks_dc,sim->bulks,(sim->n_bulks+2)*sizeof(BulkStruct)) );
 
 	// Copy num_photons_dc to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(num_photons_dc,&(sim->number_of_photons),sizeof(unsigned long long)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(num_photons_dc,&(sim->number_of_photons),sizeof(unsigned long long)));
 
 	// Copy x source position to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(xi_dc,&(sim->xi),sizeof(float)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(xi_dc,&(sim->xi),sizeof(float)));
 
 	// Copy y source position to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(yi_dc,&(sim->yi),sizeof(float)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(yi_dc,&(sim->yi),sizeof(float)));
 
 	// Copy z source position to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(zi_dc,&(sim->zi),sizeof(float)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(zi_dc,&(sim->zi),sizeof(float)));
 
 	// Copy source direction to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(dir_dc,&(sim->dir),sizeof(float)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(dir_dc,&(sim->dir),sizeof(float)));
 
 	// Copy esp to constant device memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol(esp_dc,&(sim->esp),sizeof(float)));
+		CUDA_SAFE_CALL( cudaMemcpyToSymbol(esp_dc,&(sim->esp),sizeof(float)));
 
+	}
 	return 0;
 
 }
@@ -105,52 +111,79 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
+	int num_gpus = -1;
+  checkCudaErrors(cudaGetDeviceCount(&num_gpus));
+
 	// Allocate p on the device
-	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->p,NUM_THREADS*sizeof(PhotonStruct)) );
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->p,NUM_THREADS*sizeof(PhotonStruct)) );
+	}
 
 	// Allocate Rd_xy on CPU and GPU
 	HostMem->Rd_xy = (unsigned long long*) malloc(xy_size*sizeof(unsigned long long));
 	if(HostMem->Rd_xy==NULL){printf("Error allocating HostMem->Rd_xy"); exit (1);}
-	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->Rd_xy,xy_size*sizeof(unsigned long long)) );
-	CUDA_SAFE_CALL( cudaMemset(DeviceMem->Rd_xy,0,xy_size*sizeof(unsigned long long)) );
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->Rd_xy,xy_size*sizeof(unsigned long long)) );
+		CUDA_SAFE_CALL( cudaMemset(DeviceMem->Rd_xy,0,xy_size*sizeof(unsigned long long)) );
+	}
 
 	// Allocate Tt_xy on CPU and GPU
 	HostMem->Tt_xy = (unsigned long long*) malloc(xy_size*sizeof(unsigned long long));
 	if(HostMem->Tt_xy==NULL){printf("Error allocating HostMem->Tt_xy"); exit (1);}
-	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->Tt_xy,xy_size*sizeof(unsigned long long)) );
-	CUDA_SAFE_CALL( cudaMemset(DeviceMem->Tt_xy,0,xy_size*sizeof(unsigned long long)) );
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->Tt_xy,xy_size*sizeof(unsigned long long)) );
+		CUDA_SAFE_CALL( cudaMemset(DeviceMem->Tt_xy,0,xy_size*sizeof(unsigned long long)) );
+	}
 
 	// Allocate fhd on CPU and GPU
 	HostMem->fhd = (unsigned long long*) malloc(fhd_size*sizeof(unsigned long long));
 	if(HostMem->fhd==NULL){printf("Error allocating HostMem->fhd"); exit (1);}
-	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->fhd,fhd_size*sizeof(unsigned long long)) );
-	CUDA_SAFE_CALL( cudaMemset(DeviceMem->fhd,0,fhd_size*sizeof(unsigned long long)) );
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->fhd,fhd_size*sizeof(unsigned long long)) );
+		CUDA_SAFE_CALL( cudaMemset(DeviceMem->fhd,0,fhd_size*sizeof(unsigned long long)) );
+	}
 
 	// Allocate x and a on the device (For MWC RNG)
-  CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->x,NUM_THREADS*sizeof(unsigned long long)));
-  CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->x,HostMem->x,NUM_THREADS*sizeof(unsigned long long),cudaMemcpyHostToDevice));
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->x,NUM_THREADS*sizeof(unsigned long long)));
+  	CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->x,HostMem->x,NUM_THREADS*sizeof(unsigned long long),cudaMemcpyHostToDevice));
 
-  CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->a,NUM_THREADS*sizeof(unsigned int)));
-  CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->a,HostMem->a,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
+  	CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->a,NUM_THREADS*sizeof(unsigned int)));
+  	CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->a,HostMem->a,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
+	}
 
 	// Allocate bulk_info 3D matrix and copy to device memory
-	CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->bulk_info,fhd_size*sizeof(short)));
-	CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->bulk_info,sim->bulk_info,fhd_size*sizeof(short), cudaMemcpyHostToDevice ));
-
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->bulk_info,fhd_size*sizeof(short)));
+		CUDA_SAFE_CALL(cudaMemcpy(DeviceMem->bulk_info,sim->bulk_info,fhd_size*sizeof(short), cudaMemcpyHostToDevice ));
+	}
 
 	// Allocate thread_active on the device and host
 	HostMem->thread_active = (unsigned int*) malloc(NUM_THREADS*sizeof(unsigned int));
 	if(HostMem->thread_active==NULL){printf("Error allocating HostMem->thread_active"); exit (1);}
 	for(int i=0;i<NUM_THREADS;i++)HostMem->thread_active[i]=1u;
-	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->thread_active,NUM_THREADS*sizeof(unsigned int)) );
-	CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->thread_active,HostMem->thread_active,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->thread_active,NUM_THREADS*sizeof(unsigned int)) );
+		CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->thread_active,HostMem->thread_active,NUM_THREADS*sizeof(unsigned int),cudaMemcpyHostToDevice));
+	}
 
 	//Allocate num_launched_photons on the device and host
 	HostMem->num_terminated_photons = (unsigned long long*) malloc(sizeof(unsigned long long));
 	if(HostMem->num_terminated_photons==NULL){printf("Error allocating HostMem->num_terminated_photons"); exit (1);}
 	*HostMem->num_terminated_photons=0;
-	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->num_terminated_photons,sizeof(unsigned long long)) );
-	CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->num_terminated_photons,HostMem->num_terminated_photons,sizeof(unsigned long long),cudaMemcpyHostToDevice));
+
+	for (int f = 0;f<num_gpus;f++) {
+    cudaSetDevice(f);
+		CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->num_terminated_photons,sizeof(unsigned long long)) );
+		CUDA_SAFE_CALL( cudaMemcpy(DeviceMem->num_terminated_photons,HostMem->num_terminated_photons,sizeof(unsigned long long),cudaMemcpyHostToDevice));
+	}
 
 	return 1;
 }
@@ -163,16 +196,20 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 	free(HostMem->thread_active);
 	free(HostMem->num_terminated_photons);
 
-	cudaFree(DeviceMem->p);
-	cudaFree(DeviceMem->Rd_xy);
-	cudaFree(DeviceMem->Tt_xy);
-	cudaFree(DeviceMem->fhd);
-	cudaFree(DeviceMem->bulk_info);
-	cudaFree(DeviceMem->x);
-  cudaFree(DeviceMem->a);
-	cudaFree(DeviceMem->thread_active);
-	cudaFree(DeviceMem->num_terminated_photons);
+	int num_gpus = -1;
+  checkCudaErrors(cudaGetDeviceCount(&num_gpus));
 
+	for (int f = 0;f<num_gpus;f++) {
+		cudaFree(DeviceMem->p);
+		cudaFree(DeviceMem->Rd_xy);
+		cudaFree(DeviceMem->Tt_xy);
+		cudaFree(DeviceMem->fhd);
+		cudaFree(DeviceMem->bulk_info);
+		cudaFree(DeviceMem->x);
+  	cudaFree(DeviceMem->a);
+		cudaFree(DeviceMem->thread_active);
+		cudaFree(DeviceMem->num_terminated_photons);
+	}
 }
 
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations)
