@@ -44,6 +44,7 @@ int InitDCMem(SimulationStruct* sim)
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
+	// Query number of GPUs
 	int num_gpus = -1;
   checkCudaErrors(cudaGetDeviceCount(&num_gpus));
 

@@ -148,7 +148,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
       tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*num_terminated_photons));
     }
   }
-  
+
   time2 = clock();
 
   printf("\nSimulation time: %.2f sec\n\n",
@@ -306,6 +306,7 @@ int main(int argc, char *argv[]) {
 
   printf("Running PHD simulation...\n");
 
+  //Query number of GPUs
   int num_gpus = -1;
   checkCudaErrors(cudaGetDeviceCount(&num_gpus));
   printf("There are %d gpus.\n", num_gpus);
