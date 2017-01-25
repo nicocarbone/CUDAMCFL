@@ -118,7 +118,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
     CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,
                               DeviceMem.num_terminated_photons,
                               sizeof(unsigned long long), cudaMemcpyDeviceToHost));
-    if (i == 50)
+    if (i == 100)
       printf("Estimated PHD simulation time: %.0f secs.\n\n",
              (double)(clock() - time1) / CLOCKS_PER_SEC *
                  (double)(simulation->number_of_photons /
@@ -492,12 +492,11 @@ int main(int argc, char *argv[]) {
           if (voxel_finished % 200 == 0) printf("."); fflush(stdout);
           if (voxel_finished % 10000 == 0)
             printf("\n%li of %li voxels finished\n", voxel_finished, fhd_size);
-          if (voxel_finished == 99) { // Second timestamp after 99 voxels run (so
+          if (voxel_finished == 199) { // Second timestamp after 99 voxels run (so
                                     // it displays before the first progression
                                     // report)
-          time2 = clock();
             printf("Estimated fluorescence simulation time: %.0f sec\n\n",
-                 (double)(time2 - time1) * fhd_size / CLOCKS_PER_SEC / 99);
+                 (double)(clock() - time1) * fhd_size / CLOCKS_PER_SEC / 199);
           }
         }
       }
