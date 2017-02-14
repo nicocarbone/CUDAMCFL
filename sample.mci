@@ -20,6 +20,7 @@ sample1-out 	A	      	                                                        # 
 1                                                                             # Do fluorescence simulation? 0: no, 1: do reflectance
 0.04	0.04              	                                                    # Image dx, dy
 250	250      	       	                                                        # Image No. of dx, dy
+0.0	0.0      	       	                                                        # Image x0, y0
 -4 0 0                                                                     # Source position x y z
 
 1                        	                                                    # Number of layers
