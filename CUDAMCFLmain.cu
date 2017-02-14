@@ -84,8 +84,18 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
   dim3 dimBlock(NUM_THREADS_PER_BLOCK);
   dim3 dimGrid(NUM_BLOCKS);
+  int blockSize;   // The launch configurator returned block size
+  int minGridSize; // The minimum grid size needed to achieve the
+                   // maximum occupancy for a full device launch
+  //int gridSize;    // The actual grid size needed, based on input size
+
+  cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,
+                                      MCd3D, 0, 0);
+  printf ("Grid size: %i, Block size: %i \n\n", minGridSize, blockSize);
+
 
   LaunchPhoton_Global<<<dimGrid, dimBlock>>>(DeviceMem);
+  //LaunchPhoton_Global<<<minGridSize, blockSize>>>(DeviceMem);
   CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
   cudastat = cudaGetLastError();           // Check if there was an error
   if (cudastat)
@@ -97,9 +107,13 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
     // run the kernel
     if (simulation->bulk_method == 1){
       MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+      //MCd<<<minGridSize, blockSize>>>(DeviceMem);
+
     }
     else if (simulation->bulk_method == 2) {
+
       MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+      //MCd3D<<<minGridSize, blockSize>>>(DeviceMem);
     }
 
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
@@ -178,8 +192,18 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
 
   dim3 dimBlock(NUM_THREADS_PER_BLOCK);
   dim3 dimGrid(NUM_BLOCKS);
+  int blockSize;   // The launch configurator returned block size
+  int minGridSize; // The minimum grid size needed to achieve the
+                   // maximum occupancy for a full device launch
+  //int gridSize;    // The actual grid size needed, based on input size T
+
+  cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,
+                                      MCd, 0, 0); //TODO
+  //printf ("Grid size: %i, Block size: %i \n\n", minGridSize, blockSize);
 
   LaunchPhoton_Global<<<dimGrid, dimBlock>>>(DeviceMem);
+  //LaunchPhoton_Global<<<minGridSize, blockSize>>>(DeviceMem);
+
   CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
   cudastat = cudaGetLastError();           // Check if there was an error
   if (cudastat)
@@ -191,9 +215,12 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
     // run the kernel
     if (simulation->bulk_method == 1){
       MCd<<<dimGrid, dimBlock>>>(DeviceMem);
+      //MCd<<<minGridSize, blockSize>>>(DeviceMem);
+
     }
     else if (simulation->bulk_method == 2) {
       MCd3D<<<dimGrid, dimBlock>>>(DeviceMem);
+      //MCd3D<<<minGridSize, blockSize>>>(DeviceMem);
     }
 
     CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish

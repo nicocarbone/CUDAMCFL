@@ -130,25 +130,25 @@ __global__ void MCd(MemStruct DeviceMem)
 
         if(new_layer == 0){
           // Diffuse reflectance
-			    if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
-            // Inside detector. Calculates the position in the exit matrix
+          if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
+            // Photon is detectable
             // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-            index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-                      __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-					  if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
-					}
+            index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
+                  __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
+    				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
+    			}
           p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
         }
 
         if(new_layer > *n_layers_dc) {
           // Diffuse transmitance
-					if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
-             // Inside detector. Calculates the position in the exit matrix
-             // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-             index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-                    __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
-             if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
-					}
+          if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
+            // Photon transmitted
+            // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
+            index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
+                  __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
+            if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
+          }
 					p.weight = 0; // Set the remaining weight to 0, killing the photon
         }
 			}
@@ -316,11 +316,11 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     if(p.bulkpos == 0){
       // Photon is outside bulk and reflected
-      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
+      if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
         // Photon is detectable
         // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-        index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-              __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+        index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
+              __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
 				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
@@ -329,11 +329,11 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     if(p.bulkpos == last_bulk){
       // Photon is outside bulk and transmitted
-      if(fabsf(p.x)<size_x && fabsf(p.y)<size_y) {
+      if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
         // Photon transmitted
         // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
-        index=__float2uint_rz(__fdividef(p.y+size_y,det_dc[0].dy)) * det_dc[0].nx +
-              __float2uint_rz(__fdividef(p.x+size_x,det_dc[0].dx));
+        index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
+              __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
         if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon

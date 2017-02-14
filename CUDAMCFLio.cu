@@ -312,8 +312,15 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		if(!readints(2, itemp, pFile)){perror ("Error reading No. of nx and ny");return 0;}
 		(*simulations)[i].det.nx=itemp[0];
 		(*simulations)[i].det.ny=itemp[1];
-		printf("Detector geometry= %i x %f, %i x %f. \n\n",(*simulations)[i].det.nx,(*simulations)[i].det.dx,
+
+		// Read detector x0, y0 (2x float)
+		if(!readfloats(2, ftemp, pFile)){perror ("Error reading detector x0 and y0");return 0;}
+		(*simulations)[i].det.x0=ftemp[0];
+		(*simulations)[i].det.y0=ftemp[1];
+
+		printf("Detector geometry= %i x %f, %i x %f. \n",(*simulations)[i].det.nx,(*simulations)[i].det.dx,
 			(*simulations)[i].det.ny,(*simulations)[i].det.dy);
+		printf("Detector center= %f, %f. \n\n",(*simulations)[i].det.x0,(*simulations)[i].det.y0);
 
 
 		// Read source position (3x float)
