@@ -279,12 +279,21 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 			ii=sscanf(mystring,"%llu",&number_of_photons);
 			if(feof(pFile) || ii>1){perror("Error reading number of photons");return 0;} //if we reach EOF or read more number than defined something is wrong with the file!
 		}
+		if (number_of_photons <= NUM_THREADS){
+			printf("WARNING: minimum number of photons that can be simulated is NUM_THREADS. Setting excitation photons to: %i\n\n", NUM_THREADS-1);
+			number_of_photons = NUM_THREADS-1;
+		}
 		(*simulations)[i].number_of_photons=(unsigned long long)number_of_photons;
 		printf ("\nNumber of excitation photons to be simulated: %llu\n\n", (*simulations)[i].number_of_photons);
 
 		// Read number of photons per voxel for fluorescence simulation
 		if(!readints(1, itemp, pFile)){perror ("Error reading number of photons per voxel");return 0;}
-		(*simulations)[i].number_of_photons_per_voxel=(unsigned long)itemp[0];
+		if (itemp[0] <= NUM_THREADS){
+			printf("WARNING: minimum number of photons that can be simulated is NUM_THREADS. Setting photons per voxel to: %i\n\n", NUM_THREADS-1);
+			(*simulations)[i].number_of_photons_per_voxel=(unsigned long)(NUM_THREADS-1);
+		}
+		else
+			(*simulations)[i].number_of_photons_per_voxel=(unsigned long)itemp[0];
 
 		// Read grid size
 		if(!readints(1, itemp, pFile)){perror ("Error reading grid size");return 0;}
