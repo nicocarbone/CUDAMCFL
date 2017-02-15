@@ -130,7 +130,7 @@ __global__ void MCd(MemStruct DeviceMem)
 
         if(new_layer == 0){
           // Diffuse reflectance
-          if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
+          if(fabsf(p.x-det_dc[0].x0)<size_x && fabsf(p.y-det_dc[0].y0)<size_y) {
             // Photon is detectable
             // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
             index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
@@ -142,7 +142,7 @@ __global__ void MCd(MemStruct DeviceMem)
 
         if(new_layer > *n_layers_dc) {
           // Diffuse transmitance
-          if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
+          if(fabsf(p.x-det_dc[0].x0)<size_x && fabsf(p.y-det_dc[0].y0)<size_y) {
             // Photon transmitted
             // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
             index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
@@ -316,7 +316,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     if(p.bulkpos == 0){
       // Photon is outside bulk and reflected
-      if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
+      if(fabsf(p.x-det_dc[0].x0)<size_x && fabsf(p.y-det_dc[0].y0)<size_y) {
         // Photon is detectable
         // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
         index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
@@ -329,7 +329,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     if(p.bulkpos == last_bulk){
       // Photon is outside bulk and transmitted
-      if((fabsf(p.x)-det_dc[0].x0)<size_x && (fabsf(p.y)-det_dc[0].y0)<size_y) {
+      if(fabsf(p.x-det_dc[0].x0)<size_x && fabsf(p.y-det_dc[0].y0)<size_y) {
         // Photon transmitted
         // Use round to zero so there are no over sampled pixels (for ex: (max_x,0) and (0,1) should not map to the same pixel)
         index=__float2uint_rz(__fdividef(p.y-det_dc[0].y0+size_y,det_dc[0].dy)) * det_dc[0].nx +
