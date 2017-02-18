@@ -491,7 +491,7 @@ int main(int argc, char *argv[]) {
             }
             else {
             // voxel ouside inclusion
-              if (simulations[0].inclusion.layers[nl].albedof<0){
+              if (simulations[0].layers[nl].albedof<0){
                 voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempretR, tempretT);
                 voxelw = ((double)simulations[0].layers[nl].eY *
                     (double)(1 - simulations[0].layers[nl].albedof) *
@@ -513,6 +513,7 @@ int main(int argc, char *argv[]) {
                     (double)(1 - simulations[0].bulks[bulkdescriptor].albedof) *
                     Fx[index]) /
                     (double)(voxel_status * 0xFFFFFFFF);
+              }
               else {
                 voxelw=0;
                 voxel_status=1;
