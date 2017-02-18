@@ -463,7 +463,8 @@ int main(int argc, char *argv[]) {
           unsigned long long *tempretT;
           tempretT =
               (unsigned long long *)malloc(xy_size * sizeof(unsigned long long));
-          unsigned long long voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempretR, tempretT);
+
+          unsigned long long voxel_status;
 
           // Check if inside inclusion and calculate scale value accordingly
           if (simulations[0].bulk_method == 1){
@@ -475,26 +476,47 @@ int main(int argc, char *argv[]) {
                       (zi - simulations[0].inclusion.z) <
                 simulations[0].inclusion.r * simulations[0].inclusion.r) {
             // voxel inside inclusion
-              voxelw = ((double)simulations[0].inclusion.eY *
+              if (simulations[0].inclusion.albedof<0){
+                voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempretR, tempretT);
+                voxelw = ((double)simulations[0].inclusion.eY *
                     (double)(1 - simulations[0].inclusion.albedof) *
                     Fx[index]) /
                     (double)(voxel_status * 0xFFFFFFFF);
+                  }
+              else {
+                voxelw=0;
+                voxel_status=1;
+              }
               voxel_inside++;
-            } else {
+            }
+            else {
             // voxel ouside inclusion
-              voxelw = ((double)simulations[0].layers[nl].eY *
+              if (simulations[0].inclusion.layers[nl].albedof<0){
+                voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempretR, tempretT);
+                voxelw = ((double)simulations[0].layers[nl].eY *
                     (double)(1 - simulations[0].layers[nl].albedof) *
                     Fx[index]) /
                     (double)(voxel_status * 0xFFFFFFFF);
+                }
+              else {
+                voxelw=0;
+                voxel_status=1;
+              }
               voxel_outside++;
             }
           }
 
           if (simulations[0].bulk_method == 2){
-            voxelw = ((double)simulations[0].bulks[bulkdescriptor].eY *
-                  (double)(1 - simulations[0].bulks[bulkdescriptor].albedof) *
-                  Fx[index]) /
-                  (double)(voxel_status * 0xFFFFFFFF);
+            if (simulations[0].bulks[bulkdescriptor].albedof<1){
+              voxel_status = DoOneSimulationFl(&simulations[0], x, a, tempretR, tempretT);
+              voxelw = ((double)simulations[0].bulks[bulkdescriptor].eY *
+                    (double)(1 - simulations[0].bulks[bulkdescriptor].albedof) *
+                    Fx[index]) /
+                    (double)(voxel_status * 0xFFFFFFFF);
+              else {
+                voxelw=0;
+                voxel_status=1;
+              }
             }
 
           if (voxel_status == 0) {
