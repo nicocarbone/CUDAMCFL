@@ -336,8 +336,10 @@ __global__ void MCd3D(MemStruct DeviceMem)
               __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
         if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
-      p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
-      s = 0.0f;
+      if (bulks_dc[last_bulk].mua == 0) {
+        p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon. Only if last layer is empty (TODO)
+        s = 0.0f;
+        }
       }
 
 		w=0;
