@@ -24,11 +24,11 @@ sample2-out 	A	      	                                                        # 
 0.0	0.0      	       	                                                        # Image x0, y0
 -4 0 0                                                                        # Source position x y z
 
-2                        	                                                    # Number of bulk descriptors
+2                        	                                                    # Number of bulk descriptors (n_bulk)
 5.       #Bulk thickness
 #n	mua	mus 	flc AbsCExi AbsCEmi eY	g      	                                # One line for each descriptor
 1                         	                                                  # n for medium above
-1.33 0.04 48 10e-9 339625. 219500. 0.043 0.8                                  # layer 1
+1.33 0.04 48 10e-9 339625. 219500. 0.043 0.8                                  # Bulk 1
 1.33 0.08 48 50e-9 339625  219500  0.043 0.8
-1                        	                                                    # n for medium below
-3Dbulk-sample                                                                 # name of external 3D matrix describing the medium. Ignored if method 1
+1 0 0 0 0 0 0 0                       	                                      # Bulk n_bulks+1. Use for semi-infinite final layer. Set all values but n to zero for free space. Bulk not retrieved from external 3D matrix.
+3Dbulk-sample                                                                 # Name of external 3D matrix describing the medium. Ignored if method 1
