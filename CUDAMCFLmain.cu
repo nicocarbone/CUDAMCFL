@@ -138,8 +138,8 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
                  (double)(simulation->number_of_photons /
                           *HostMem.num_terminated_photons));
 //    if (fmod(i, 200u) == 0) printf("."); fflush(stdout);
-    if (i % 200 == 0) printf("."); fflush(stdout);
-    if (i % 10000 == 0)
+    if (i % 100 == 0) printf("."); fflush(stdout);
+    if (i % 2000 == 0)
       printf("\nRun %u, %llu photons simulated\n", i,
              *HostMem.num_terminated_photons);
   }
