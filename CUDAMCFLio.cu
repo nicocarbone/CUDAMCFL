@@ -467,7 +467,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		(*simulations)[i].bulks[0].mutr=FLT_MAX; //Glass
 		(*simulations)[i].bulks[0].albedof = 0.; //mus/(flc*AbsCExi + mus)
 
-		for(ii=1;ii<=n_bulks+1;ii++)	{
+		for(ii=1;ii<=n_bulks;ii++)	{
 			// Read Layer data (9x float)
 			if(!readfloats(8, ftemp, pFile)){perror ("Error reading bulk descriptors data");return 0;}
 			(*simulations)[i].bulks[ii].n=ftemp[0];
@@ -477,13 +477,9 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 			(*simulations)[i].bulks[ii].flc=ftemp[3];
 			(*simulations)[i].bulks[ii].g=ftemp[7];
 			if(ftemp[2]==0.0f)(*simulations)[i].bulks[ii].mutr=FLT_MAX; //Glass
-				else(*simulations)[i].bulks[ii].mutr=1.0f/(ftemp[1]+ftemp[2]);
-			if ((ftemp[3] >0 && ftemp[4]>0) || ftemp[2]>0) (*simulations)[i].bulks[ii].albedof =  ftemp[2]/(ftemp[3]*ftemp[4] + ftemp[2]); //mus/(flc*AbsCExi + mus)
-				else (*simulations)[i].bulks[ii].albedof=0;
-		}//end ii<n_bulks
-
-		for(ii=1;ii<=n_bulks;ii++)	{
-			printf("Bulk desc. %i\n n=%f\n mua=%f\n muaf=%f\n mutr=%f\n eY=%f\n flc=%e\n g=%f\n albedof=%f\n \n", ii,
+			else(*simulations)[i].bulks[ii].mutr=1.0f/(ftemp[1]+ftemp[2]);
+			(*simulations)[i].bulks[ii].albedof =  ftemp[2]/(ftemp[3]*ftemp[4] + ftemp[2]); //mus/(flc*AbsCExi + mus)
+			printf("Bulk desc. %i\n n=%f\n mua=%f\n muaf=%f\n mutr=%f\n eY=%f\n flc=%e\n g=%f\n albedof=%f\n AbsCExi=%f\n AbsCEmi=%f\n\n", ii,
 				(*simulations)[i].bulks[ii].n,
 				(*simulations)[i].bulks[ii].mua,
 				(*simulations)[i].bulks[ii].muaf,
@@ -491,27 +487,13 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 				(*simulations)[i].bulks[ii].eY,
 				(*simulations)[i].bulks[ii].flc,
 				(*simulations)[i].bulks[ii].g,
-				(*simulations)[i].bulks[ii].albedof
-				//ftemp[4],
-				//ftemp[5] TODO: display AbsCExi and AbsCEmi
-		);
-		}
+				(*simulations)[i].bulks[ii].albedof,
+				ftemp[4],
+				ftemp[5]
+			);
+		}//end ii<n_bulks
 
-		printf("Final semi-infine layer\n n=%f\n mua=%f\n muaf=%f\n mutr=%f\n eY=%f\n flc=%e\n g=%f\n albedof=%f\n \n", ii,
-			(*simulations)[i].bulks[n_bulks+1].n,
-			(*simulations)[i].bulks[n_bulks+1].mua,
-			(*simulations)[i].bulks[n_bulks+1].muaf,
-			(*simulations)[i].bulks[n_bulks+1].mutr,
-			(*simulations)[i].bulks[n_bulks+1].eY,
-			(*simulations)[i].bulks[n_bulks+1].flc,
-			(*simulations)[i].bulks[n_bulks+1].g,
-			(*simulations)[i].bulks[n_bulks+1].albedof
-			//ftemp[4],
-			//ftemp[5] TODO: display AbsCExi and AbsCEmi
-		);
-
-
-		/* Read Lower refractive index (1x float)
+		// Read Lower refractive index (1x float)
 		if(!readfloats(1, ftemp, pFile)){perror ("Error reading lower refractive index");return 0;}
 		(*simulations)[i].bulks[n_bulks+1].n=ftemp[0];
 		printf("Lower refractive index=%f\n\n",(*simulations)[i].bulks[n_bulks+1].n);
@@ -523,7 +505,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		(*simulations)[i].bulks[n_bulks+1].g=1.;
 		(*simulations)[i].bulks[n_bulks+1].mutr=FLT_MAX; //Glass
 		(*simulations)[i].bulks[n_bulks+1].albedof = 0.; //mus/(flc*AbsCExi + mus)
-		*/
+
 		//Read matrix filename
 		ii=0;
 		while(ii<=0){
