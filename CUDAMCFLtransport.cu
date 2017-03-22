@@ -73,15 +73,17 @@ __global__ void MCd(MemStruct DeviceMem)
        (inclusion_dc[0].r*inclusion_dc[0].r)) {
       // Inside inclusion
 			if(inclusion_dc[0].mutr!=FLT_MAX)
-				s = -__logf(rand_MWC_oc(&x,&a))*inclusion_dc[0].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-			else
+				//s = -__logf(rand_MWC_oc(&x,&a))*inclusion_dc[0].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+        s = inclusion_dc[0].mutr;
+      else
 				s = 2.0f;//temporary, say the step in glass is 100 cm.
 		}
 		else 	{
       // Outside inclusion
 			if(layers_dc[p.layer].mutr!=FLT_MAX)
-				s = -__logf(rand_MWC_oc(&x,&a))*layers_dc[p.layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-			else
+				//s = -__logf(rand_MWC_oc(&x,&a))*layers_dc[p.layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+        s = layers_dc[p.layer].mutr;
+      else
 				s = 2.0f;//temporary, say the step in glass is 100 cm.
 		}
 
@@ -246,8 +248,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
     // Main while loop
 
   	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX)
-			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-		else
+			//s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+      s = bulks_dc[p.bulkpos].mutr;
+    else
 			//s = 100.0f; //temporary, say the step in glass is 100 cm.
       s = 2.0f;
 
