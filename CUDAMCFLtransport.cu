@@ -24,7 +24,7 @@ __global__ void LaunchPhoton_Global(MemStruct);
 __device__ void Spin(PhotonStruct*, float,unsigned long long*,unsigned int*);
 __device__ unsigned int Reflect(PhotonStruct*, int, unsigned long long*, unsigned int*, int);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, unsigned long long*, unsigned int*);
-
+__device__ unsigned int MoveToFirstBoundary(PhotonStruct*, unsigned short, short*);
 
 __global__ void MCd(MemStruct DeviceMem)
 {
@@ -235,6 +235,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 	float s;	// step length
 	unsigned int index; // temporal variable to store indexes to arrays
 	unsigned int w; // photon weight
+  //bool in_glass = FALSE;
 
 	PhotonStruct p = DeviceMem.p[begin+tx];
 
@@ -247,56 +248,64 @@ __global__ void MCd3D(MemStruct DeviceMem)
 	for(;ii<NUMSTEPS_GPU;ii++) {
     // Main while loop
 
-  	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX)
+  	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX) {
 			//s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
       s = bulks_dc[p.bulkpos].mutr;
-    else
+
+      new_bulk = p.bulkpos;
+
+      //int side_scape = 0;
+
+      //Check for upwards reflection/transmission and move to surface
+  		if(p.z+s*p.dz<0.) {
+        new_bulk = 0;
+        //side_scape = 0;
+        s = __fdividef(-p.z,p.dz);
+      }
+
+      //Check for downward reflection/transmission and move to surface
+  		if(p.z+s*p.dz>(*esp_dc)){
+        new_bulk = last_bulk;
+        //side_scape = 0;
+        s = __fdividef((*esp_dc)-p.z,p.dz);
+      }
+
+      // Move photon TODO:here?
+      p.x += p.dx*s;
+      p.y += p.dy*s;
+      p.z += p.dz*s;
+
+      // Retrieve bulk position
+      if(new_bulk!=0 && new_bulk!=last_bulk) {
+        if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){
+          // Inside space of 3D matrix. Calculate index of the current voxel
+          // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+          index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
+          new_bulk = DeviceMem.bulk_info[index];
+        }
+        else {
+          // Photon scaped to the sides
+          // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
+          new_bulk = 1;
+        }
+      }
+
+    }
+    else {
 			//s = 100.0f; //temporary, say the step in glass is 100 cm.
+      //in_glass=TRUE;
       s = 2.0f;
+      new_bulk = MoveToFirstBoundary(&p, p.bulkpos, DeviceMem.bulk_info);
+
+    }
 
 		//Check for layer transitions and in case, calculate s
-		new_bulk = p.bulkpos;
 
-    //int side_scape = 0;
-
-    //Check for upwards reflection/transmission and move to surface
-		if(p.z+s*p.dz<0.) {
-      new_bulk = 0;
-      //side_scape = 0;
-      s = __fdividef(-p.z,p.dz);
-    }
-
-    //Check for downward reflection/transmission and move to surface
-		if(p.z+s*p.dz>(*esp_dc)){
-      new_bulk = last_bulk;
-      //side_scape = 0;
-      s = __fdividef((*esp_dc)-p.z,p.dz);
-    }
-
-    // Move photon TODO:here?
-    p.x += p.dx*s;
-    p.y += p.dy*s;
-    p.z += p.dz*s;
 
     //if(p.z>(*esp_dc)) p.z=(*esp_dc);//needed? TODO
 		//if(p.z<0.) p.z=0.;//needed? TODO
-
-    // Retrieve bulk position
-    if(new_bulk!=0 && new_bulk!=last_bulk) {
-      if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){
-        // Inside space of 3D matrix. Calculate index of the current voxel
-        // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-        index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-              + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-              + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
-        new_bulk = DeviceMem.bulk_info[index];
-      }
-      else {
-        // Photon scaped to the sides
-        // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
-        new_bulk = 1;
-        }
-    }
 
     unsigned int reflected;
 
@@ -619,6 +628,88 @@ __device__ unsigned int Reflect(PhotonStruct* p, int newlb, unsigned long long* 
 		return 0u;
 	}
 
+}
+
+__device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_bulk, short* bulk_info){
+  // Given two bulk postions, initial and final, and the photon direction check for the first change of bulk descriptor in that direction
+
+  // 3D bulk matrix width and height
+  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
+  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
+
+  // Set search_step as voxel size [TODO]
+  float search_step = 1/(*grid_size_dc);
+  float total_move = 0;
+  int index = 1;
+  unsigned short present_bulk;
+
+
+  // Search for next bulk change
+  while (present_bulk == old_bulk && total_move<2){
+    // Move photon
+
+
+    //Check for upwards reflection/transmission
+    if(p->z+p->dz*search_step<0.) {
+      present_bulk = 0;
+      index = -1;
+      search_step = __fdividef(-p->z,p->dz);
+    }
+
+    //Check for downward reflection/transmission
+    else if(p->z+p->dz*search_step>(*esp_dc)){
+      present_bulk = *n_bulks_dc+1;
+      index = -1;
+      search_step = __fdividef((*esp_dc)-p->z,p->dz);
+    }
+
+    else if (fabsf(p->x+p->dx*search_step)>=2*(*esp_dc) || fabsf(p->y+p->dy*search_step)>=2*(*esp_dc)){
+      present_bulk=1;
+      index=-1;
+    }
+
+    else {
+    // Calculate index of present bulk
+      index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+            + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+            + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
+      present_bulk = bulk_info[index];
+    }
+
+    total_move+=search_step;
+    p->x += p->dx*search_step;
+    p->y += p->dy*search_step;
+    p->z += p->dz*search_step;
+  }
+
+
+
+  // Set photon postion to boaundary
+  if (index>=0){
+
+    // See: http://stackoverflow.com/questions/7367770/how-to-flatten-or-index-3d-array-in-1d-array
+    int z_grid = index / (num_x * num_y);
+    index -= (z_grid * num_x * num_y);
+    int y_grid = index / num_x;
+    int x_grid = index % num_x;
+
+    if (p->dx>=0)
+      p->x = __int2float_rn(x_grid)/(*grid_size_dc) - 2*(*esp_dc);
+    else
+      p->x = __int2float_rn(x_grid)/(*grid_size_dc) + (1/2*__int2float_rn(*grid_size_dc)) - 2*(*esp_dc);
+
+    if (p->dy>=0)
+      p->y = __int2float_rn(y_grid)/(*grid_size_dc) - 2*(*esp_dc);
+    else
+      p->y = __int2float_rn(y_grid)/(*grid_size_dc) + (1/2*__int2float_rn(*grid_size_dc)) - 2*(*esp_dc);
+
+    if (p->dz>=0)
+      p->z = __int2float_rn(z_grid)/(*grid_size_dc);
+    else
+      p->z = __int2float_rn(z_grid)/(*grid_size_dc) + (1/2*__int2float_rn(*grid_size_dc));
+  }
+  // Return
+  return present_bulk;
 }
 
 
