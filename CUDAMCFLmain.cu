@@ -327,29 +327,32 @@ int main(int argc, char *argv[]) {
   Fx = (double *)malloc((fhd_size) * sizeof(double));
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
 
-  // Outputting FHD files for debug
-  printf("Writing PHD files...\n"); // TODO
+  if(simulations[0].fhd_activated==1){
+    // Outputting FHD files for debug
+    printf("Writing PHD files...\n"); // TODO
 
-  // ASCII file
-  FILE *fhd3DaFile_out;
-  char filenamefl3da[STR_LEN];
-	for (int ic=0; ic<STR_LEN; ic++) filenamefl3da[ic] = simulations[0].outp_filename[ic];
-  strcat(filenamefl3da, "_PHD-Ascii.dat");
+    // ASCII file
 
-  fhd3DaFile_out = fopen(filenamefl3da, "w");
-  if (fhd3DaFile_out == NULL) {
-    perror("Error opening output file");
-    return 0;
-  }
+    FILE *fhd3DaFile_out;
+    char filenamefl3da[STR_LEN];
+	   for (int ic=0; ic<STR_LEN; ic++) filenamefl3da[ic] = simulations[0].outp_filename[ic];
+     strcat(filenamefl3da, "_PHD-Ascii.dat");
 
-  fprintf(fhd3DaFile_out, "%llu\t%llu\t%llu\n", num_x,num_y,num_z);
+     fhd3DaFile_out = fopen(filenamefl3da, "w");
+     if (fhd3DaFile_out == NULL) {
+       perror("Error opening output file");
+       return 0;
+     }
 
-  for (int xyz = 0; xyz < fhd_size; xyz++) {
-    fprintf(fhd3DaFile_out, "%.10E\n", Fx[xyz]);
-  }
+     fprintf(fhd3DaFile_out, "%llu\t%llu\t%llu\n", num_x,num_y,num_z);
 
-  fclose(fhd3DaFile_out);
+     for (int xyz = 0; xyz < fhd_size; xyz++) {
+       fprintf(fhd3DaFile_out, "%.10E\n", Fx[xyz]);
+     }
 
+     fclose(fhd3DaFile_out);
+   }
+   
   /*
   // Binary file
   FILE *fhd3DbFile_out;

@@ -24,7 +24,7 @@ __global__ void LaunchPhoton_Global(MemStruct);
 __device__ void Spin(PhotonStruct*, float,unsigned long long*,unsigned int*);
 __device__ unsigned int Reflect(PhotonStruct*, int, unsigned long long*, unsigned int*, int);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, unsigned long long*, unsigned int*);
-__device__ unsigned int MoveToFirstBoundary(PhotonStruct*, unsigned short, short*);
+__device__ unsigned int MoveToFirstBoundary(PhotonStruct*, unsigned short, short*, float);
 
 __global__ void MCd(MemStruct DeviceMem)
 {
@@ -249,8 +249,8 @@ __global__ void MCd3D(MemStruct DeviceMem)
     // Main while loop
 
   	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX) {
-			//s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-      s = bulks_dc[p.bulkpos].mutr;
+			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+      //s = bulks_dc[p.bulkpos].mutr;
 
       new_bulk = p.bulkpos;
 
@@ -296,8 +296,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
     else {
 			//s = 100.0f; //temporary, say the step in glass is 100 cm.
       //in_glass=TRUE;
-      s = 2.0f;
-      new_bulk = MoveToFirstBoundary(&p, p.bulkpos, DeviceMem.bulk_info);
+      s = 100.0f;
+      new_bulk = MoveToFirstBoundary(&p, p.bulkpos, DeviceMem.bulk_info, s);
+      //printf("chau\n");
 
     }
 
@@ -630,7 +631,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int newlb, unsigned long long* 
 
 }
 
-__device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_bulk, short* bulk_info){
+__device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_bulk, short* bulk_info, float max_s){
   // Given two bulk postions, initial and final, and the photon direction check for the first change of bulk descriptor in that direction
 
   // 3D bulk matrix width and height
@@ -638,16 +639,19 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
   const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
 
   // Set search_step as voxel size [TODO]
-  float search_step = 1/(*grid_size_dc);
+  float search_step = 1/(2*__int2float_rn(*grid_size_dc));
   float total_move = 0;
   int index = 1;
-  unsigned short present_bulk;
+  unsigned short present_bulk=old_bulk;
 
 
   // Search for next bulk change
-  while (present_bulk == old_bulk && total_move<2){
+  while (present_bulk == old_bulk && total_move<max_s){
     // Move photon
 
+    p->x += (p->dx)*search_step;
+    p->y += (p->dy)*search_step;
+    p->z += (p->dz)*search_step;
 
     //Check for upwards reflection/transmission
     if(p->z+p->dz*search_step<0.) {
@@ -665,48 +669,105 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
 
     else if (fabsf(p->x+p->dx*search_step)>=2*(*esp_dc) || fabsf(p->y+p->dy*search_step)>=2*(*esp_dc)){
       present_bulk=1;
-      index=-1;
+      index = -1;
     }
 
     else {
     // Calculate index of present bulk
       index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
             + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-            + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc)));
+            + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc))); //(z * xMax * yMax) + (y * xMax) + x
       present_bulk = bulk_info[index];
     }
 
-    total_move+=search_step;
-    p->x += p->dx*search_step;
-    p->y += p->dy*search_step;
-    p->z += p->dz*search_step;
+    total_move += search_step;
+
+
+
+    //printf("%f, %E, %E, %i\n", p->dz, search_step, total_move, index);
+
   }
 
-
-
   // Set photon postion to boaundary
-  if (index>=0){
+  if (index>=0 && present_bulk != old_bulk){
+    //printf("%f %f %f\n", p->x, p->y, p->z);
 
+    // Voxel center position
     // See: http://stackoverflow.com/questions/7367770/how-to-flatten-or-index-3d-array-in-1d-array
     int z_grid = index / (num_x * num_y);
     index -= (z_grid * num_x * num_y);
     int y_grid = index / num_x;
     int x_grid = index % num_x;
 
-    if (p->dx>=0)
-      p->x = __int2float_rn(x_grid)/(*grid_size_dc) - 2*(*esp_dc);
-    else
-      p->x = __int2float_rn(x_grid)/(*grid_size_dc) + (1/2*__int2float_rn(*grid_size_dc)) - 2*(*esp_dc);
+    float y_voxel = __int2float_rn(y_grid)/(*grid_size_dc) - 2*(*esp_dc) + 1./(2.*(*grid_size_dc));
+    float x_voxel = __int2float_rn(x_grid)/(*grid_size_dc) - 2*(*esp_dc) + 1./(2.*(*grid_size_dc));
+    float z_voxel = __int2float_rn(z_grid)/(*grid_size_dc) + 1./(2.*(*grid_size_dc));
 
-    if (p->dy>=0)
-      p->y = __int2float_rn(y_grid)/(*grid_size_dc) - 2*(*esp_dc);
-    else
-      p->y = __int2float_rn(y_grid)/(*grid_size_dc) + (1/2*__int2float_rn(*grid_size_dc)) - 2*(*esp_dc);
+    // As an approximation, lets consider the voxel to be an sphere of r = 1/(2*grid_size_dc))
+    // Move the photon back in the direction of movement, an amount back_step until reaching the boundary of the sphere
+    // TODO: better approximation?
+    // See sage_math source for equation solving
 
-    if (p->dz>=0)
-      p->z = __int2float_rn(z_grid)/(*grid_size_dc);
-    else
-      p->z = __int2float_rn(z_grid)/(*grid_size_dc) + (1/2*__int2float_rn(*grid_size_dc));
+    float r_voxel2 = pow(0.707107*(1/__int2float_rn(*grid_size_dc)),2);
+
+    float pow_dx = p->dx*p->dx;
+    float pow_dy = p->dy*p->dy;
+    float pow_dz = p->dz*p->dz;
+    float pow_px = p->x*p->x;
+    float pow_py = p->y*p->y;
+    float pow_pz = p->z*p->z;
+    float pow_cx = x_voxel*x_voxel;
+    float pow_cy = y_voxel*y_voxel;
+    float pow_cz = z_voxel*z_voxel;
+
+
+    //There are two possible solutions (backwards and forwards until reaching the limit of the voxel)
+    float back_step1 = -(x_voxel*p->dx + y_voxel*p->dy + z_voxel*p->dz - p->dx*p->x - p->dy*p->y - p->dz*p->z +
+          sqrt(2*x_voxel*y_voxel*p->dx*p->dy - (pow_cy + pow_cz)*pow_dx -
+          (pow_cx + pow_cz)*pow_dy - (pow_cx + pow_cy)*pow_dz -
+          (pow_dy + pow_dz)*pow_px - (pow_dx + pow_dz)*pow_py -
+          (pow_dx + pow_dy)*pow_pz + (pow_dx + pow_dy + pow_dz)*r_voxel2 +
+          2*(x_voxel*z_voxel*p->dx + y_voxel*z_voxel*p->dy)*p->dz -
+          2*(y_voxel*p->dx*p->dy - x_voxel*pow_dy + z_voxel*p->dx*p->dz - x_voxel*pow_dz)*p->x +
+          2*(y_voxel*pow_dx - x_voxel*p->dx*p->dy - z_voxel*p->dy*p->dz + y_voxel*pow_dz + p->dx*p->dy*p->x)*p->y +
+          2*(z_voxel*pow_dx + z_voxel*pow_dy + p->dx*p->dz*p->x + p->dy*p->dz*p->y -
+          (x_voxel*p->dx + y_voxel*p->dy)*p->dz)*p->z))/(pow_dx + pow_dy + pow_dz);
+
+    float back_step2 = -(x_voxel*p->dx + y_voxel*p->dy + z_voxel*p->dz - p->dx*p->x - p->dy*p->y - p->dz*p->z -
+          sqrt(2*x_voxel*y_voxel*p->dx*p->dy - (pow_cy + pow_cz)*pow_dx -
+          (pow_cx + pow_cz)*pow_dy - (pow_cx + pow_cy)*pow_dz -
+          (pow_dy + pow_dz)*pow_px - (pow_dx + pow_dz)*pow_py -
+          (pow_dx + pow_dy)*pow_pz + (pow_dx + pow_dy + pow_dz)*r_voxel2 +
+          2*(x_voxel*z_voxel*p->dx + y_voxel*z_voxel*p->dy)*p->dz -
+          2*(y_voxel*p->dx*p->dy - x_voxel*pow_dy + z_voxel*p->dx*p->dz - x_voxel*pow_dz)*p->x +
+          2*(y_voxel*pow_dx - x_voxel*p->dx*p->dy - z_voxel*p->dy*p->dz + y_voxel*pow_dz + p->dx*p->dy*p->x)*p->y +
+          2*(z_voxel*pow_dx + z_voxel*pow_dy + p->dx*p->dz*p->x + p->dy*p->dz*p->y -
+          (x_voxel*p->dx + y_voxel*p->dy)*p->dz)*p->z))/(pow_dx + pow_dy + pow_dz);
+
+
+    // Move assmuning backwards and...
+    float new_px1 = p->x - (p->dx)*back_step1;
+    float new_py1 = p->y - (p->dy)*back_step1;
+    float new_pz1 = p->z - (p->dz)*back_step1;
+
+    float new_px2 = p->x - (p->dx)*back_step2;
+    float new_py2 = p->y - (p->dy)*back_step2;
+    float new_pz2 = p->z - (p->dz)*back_step2;
+
+    // of the two possible solutions for the photons position, choose the one closer to the center of the voxel.
+    if (((new_px1 - x_voxel)*(new_px1 - x_voxel) + (new_py1 - y_voxel)*(new_py1 - y_voxel) + (new_pz1 - z_voxel)*(new_pz1 - z_voxel)) <
+        ((new_px2 - x_voxel)*(new_px2 - x_voxel) + (new_py2 - y_voxel)*(new_py2 - y_voxel) + (new_pz2 - z_voxel)*(new_pz2 - z_voxel))) {
+          p->x = new_px1;
+          p->y = new_py1;
+          p->z = new_pz1;
+          }
+        else {
+          p->x = new_px2;
+          p->y = new_py2;
+          p->z = new_pz2;
+        }
+
+    //printf("%f %f %f, %f %f %f\n\n", p->x, p->y, p->z, x_voxel, y_voxel, z_voxel);
   }
   // Return
   return present_bulk;
