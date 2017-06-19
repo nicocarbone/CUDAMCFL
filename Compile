@@ -1,1 +1,1 @@
-nvcc -o cuda_fl CUDAFL_INCmain.cu --ptxas-options=-v --optimize=3 --use_fast_math --disable-warnings
+nvcc -o cuda_fl_oldsm CUDAMCFLmain.cu --ptxas-options=-v --optimize=3 --use_fast_math --disable-warnings

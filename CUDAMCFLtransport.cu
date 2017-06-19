@@ -647,8 +647,8 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
 
   // Search for next bulk change
   while (present_bulk == old_bulk && total_move<max_s){
-    // Move photon
 
+    // Move photon
     p->x += (p->dx)*search_step;
     p->y += (p->dy)*search_step;
     p->z += (p->dz)*search_step;
@@ -681,10 +681,6 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
     }
 
     total_move += search_step;
-
-
-
-    //printf("%f, %E, %E, %i\n", p->dz, search_step, total_move, index);
 
   }
 

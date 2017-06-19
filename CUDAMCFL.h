@@ -15,15 +15,14 @@
 */
 
 // DEFINES
-#define NUM_THREADS_PER_BLOCK 256 //128 //512 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
-#define NUM_BLOCKS 10 //10  //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
-#define NUM_THREADS 2560 //2560 //1280
-
-#define NUMSTEPS_GPU 10000
+#define NUM_THREADS_PER_BLOCK 256//256 //128 //512 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
+#define NUM_BLOCKS 128 //10  //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
+#define NUM_THREADS NUM_THREADS_PER_BLOCK*NUM_BLOCKS
+#define NUMSTEPS_GPU 80000
 #define PI 3.141592654f
 #define RPI 0.318309886f
 #define MAX_LAYERS 100
-#define STR_LEN 200
+#define STR_LEN 500
 #define MAX_STEP 14000
 #define TAM_GRILLA 5
 #define RAD_FIB_BAN 0.05
@@ -62,7 +61,7 @@ typedef struct __align__ (16)
 
 								unsigned int weight; // Photon weight
 								int layer; // Current layer
-								short bulkpos; // Current bulk descriptor
+								unsigned short bulkpos; // Current bulk descriptor
 								unsigned int step; // Step actual
 } PhotonStruct;
 
@@ -75,6 +74,9 @@ typedef struct __align__ (16)
 								int nx; // Number of grid elements in x-direction
 								int ny; // Number of grid elements in y-direction
 								int nz; // Number of grid elements in z-direction TODO: why?
+
+								float x0; // X coordinate origin of detection grid
+								float y0; // X coordinate origin of detection grid
 
 								float sep; // Separacion fibra de detaccion - eje optico TODO: remove.
 } DetStruct;
@@ -128,6 +130,8 @@ typedef struct
 								LayerStruct* layers; // Layers structure
 								BulkStruct* bulks; // Bulk descriptors
 								IncStruct inclusion; // Inclusion structure
+
+								int grid_size; // Voxel size: 1cm/grid_size
 
 								float esp; // Medium thickness
 
