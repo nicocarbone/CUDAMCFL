@@ -1,6 +1,0 @@
-{
-  "name": "CUDAMCFL",
-  "tagline": "",
-  "body": "### Abstract\r\nWe present an implementation of a Monte Carlo simulation software for light propagation in fluorescent turbid media, accelerated by GPU (graphic processing unit). The code is based on previous work by Alerstam et al and Wang et al, with the addition of a voxelized medium without symmetries and with an inhomogeneous distribution of absorbers and fluorescent markers.\r\n\r\nBroadly speaking, the code developed in the present contribution adds over CUDAMC:\r\n\r\n* A complete Cartesian geometry, without assumptions of symmetry, producing x,y Cartesian images as output.\r\n* Inhomogeneities embedded in the medium, defined by an input matrix.\r\n* A voxelization of the bulk media, for inhomogeneity description and for photon hitting density storage.\r\n* The possibility of a isotropic source located anywhere in the medium.\r\n* Fluorescent sources simulation.\r\n\r\n### Contact\r\nNicolás Abel Carbone\r\n\r\nInstituto de Física Arroyo Seco – IFAS (UNCPBA) and CIFICEN (UNCPBA-CICPBA-CONICET), Pinto 399, 7000) Tandil, Argentina\r\n\r\nncarbone@exa.unicen.edu.ar",
-  "note": "Don't delete this file! It's used internally to help with page regeneration."
-}
