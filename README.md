@@ -59,7 +59,7 @@ Sample MCI file defining using a bulk descriptor input matrix.
 
 This code is discussed in a peer-reviewed paper published in Biomedical Physics & Engineering Express under the title: "GPU accelerated Monte Carlo simulation of light propagation in inhomogeneous fluorescent turbid media. Application to whole field CW imaging.".
 
-If you are using CUDAMCFL with academic purpose, please cite the preceding paper. In BibTeX form:
+If you are using CUDAMCFL for academic purposes, please cite the preceding paper. In BibTeX form:
 
 ```latex
 @article{10.1088/2057-1976/aa7b8f,
