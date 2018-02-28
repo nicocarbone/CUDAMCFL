@@ -27,6 +27,7 @@
 #define TAM_GRILLA 5
 #define RAD_FIB_BAN 0.05
 #define C_CMFS 2.99792E-5 // Speed of light in centimeters per femtosecond
+#define MAX_TEMP_DETS 100 // Max number of temporal detectors in each axis
 
 //#define WEIGHT 0.0001f
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
@@ -152,6 +153,12 @@ typedef struct
 								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
 
 								char bulkinfo_filename[STR_LEN]; // external fila containing the bulk information for method 2
+
+								int do_temp_sim; //0: don't do temporal sim, 1: do temporal sim
+								int x_temp_dets; //Number of temporal detectors in x axis
+								int y_temp_dets; //Number of temporal detectors in y axis
+								float x_sep_dets; //Separation of temporal detectors in x axis
+								float y_sep_dets; //Separation of temporal detectors in y axis
 
 }SimulationStruct;
 
