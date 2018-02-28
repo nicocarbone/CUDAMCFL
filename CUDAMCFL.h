@@ -26,6 +26,7 @@
 #define MAX_STEP 14000
 #define TAM_GRILLA 5
 #define RAD_FIB_BAN 0.05
+#define C_CMFS 2.99792E-5 // Speed of light in centimeters per femtosecond
 
 //#define WEIGHT 0.0001f
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
@@ -63,6 +64,7 @@ typedef struct __align__ (16)
 								int layer; // Current layer
 								unsigned short bulkpos; // Current bulk descriptor
 								unsigned int step; // Step actual
+								unsigned long tof; // Time of flight, fentoseconds
 } PhotonStruct;
 
 typedef struct __align__ (16)
