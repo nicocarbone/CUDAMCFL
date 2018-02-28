@@ -107,6 +107,9 @@ __global__ void MCd(MemStruct DeviceMem)
 		p.y += p.dy*s;
 		p.z += p.dz*s;
 
+    //Update time of flight
+    p.tof += (unsigned long)(s/C_CMFT);
+
     if(p.z>layers_dc[p.layer].z_max)p.z=layers_dc[p.layer].z_max;//needed? TODO
 		if(p.z<layers_dc[p.layer].z_min)p.z=layers_dc[p.layer].z_min;//needed? TODO
 
@@ -274,6 +277,9 @@ __global__ void MCd3D(MemStruct DeviceMem)
       p.x += p.dx*s;
       p.y += p.dy*s;
       p.z += p.dz*s;
+
+      //Update time of flight
+      p.tof += (unsigned long)(s/C_CMFT);
 
       // Retrieve bulk position
       if(new_bulk!=0 && new_bulk!=last_bulk) {
@@ -477,6 +483,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
   }
 
 	p->step= 0;
+  p->tof = 0;
 
   if ((*bulk_method_dc) == 1){
   // Found photon start layer
@@ -653,6 +660,9 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
     p->y += (p->dy)*search_step;
     p->z += (p->dz)*search_step;
 
+    //Update time of flight
+    p.tof += (unsigned long)(search_step/C_CMFT);
+
     //Check for upwards reflection/transmission
     if(p->z+p->dz*search_step<0.) {
       present_bulk = 0;
@@ -756,11 +766,17 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
           p->x = new_px1;
           p->y = new_py1;
           p->z = new_pz1;
+
+          //Update time of flight
+          p.tof -= (unsigned long)(back_step1/C_CMFT);
           }
         else {
           p->x = new_px2;
           p->y = new_py2;
           p->z = new_pz2;
+
+          //Update time of flight
+          p.tof -= (unsigned long)(back_step2/C_CMFT);
         }
 
     //printf("%f %f %f, %f %f %f\n\n", p->x, p->y, p->z, x_voxel, y_voxel, z_voxel);
