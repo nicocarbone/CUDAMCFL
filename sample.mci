@@ -3,7 +3,7 @@
 # 	A template for input files for CUDAMCFL.
 #	Any characters following a # are ignored as comments
 #	Space lines are also ignored.
-#	Lengths are in cm, mua and mus are in 1/cm.
+#	Lengths are in cm, mua and mus are in 1/cm
 ##########################################
 
 
@@ -27,6 +27,9 @@ sample1-out 	A	      	                                                        # 
 60  1                                                                         # Number of detectors,  x,y
 0.1 0.1                                                                       # Separation between detectors [cm] x,y
 0.1                                                                           # Temporal detector radious [cm]
+0                                                                             # Location of the detector array. 0: reflectance, 1:Transmitance
+1000                                                                          # Number of temporal temporal bins.
+20000000                                                                      # Max temp [fs]
 
 1                        	                                                    # Number of layers
 #n	mua	mus 	flc AbsCExi AbsCEmi eY	g	d         	                          # One line for each layer

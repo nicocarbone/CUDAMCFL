@@ -28,6 +28,9 @@ sample2-out 	A	      	                                                        # 
 60  1                                                                         # Number of detectors,  x,y
 0.1 0.1                                                                       # Separation between detectors [cm] x,y
 0.1                                                                           # Temporal detector radious [cm]
+0                                                                             # Location of the detector array. 0: reflectance, 1:Transmitance
+1000                                                                          # Number of temporal temporal bins.
+20000000                                                                      # Max temp [fs]
 
 2                        	                                                    # Number of bulk descriptors
 5.       #Bulk thickness
