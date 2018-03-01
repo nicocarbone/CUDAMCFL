@@ -339,7 +339,44 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		(*simulations)[i].zi=ftemp[2];
 		printf("Source postion= %f, %f, %f\n\n",(*simulations)[i].xi,(*simulations)[i].yi,(*simulations)[i].zi);
 
+
+		// Read Temporal simulation flag
+		if(!readints(1, itemp, pFile)){perror ("Error reading temporal simulaion flag");return 0;}
+		(*simulations)[i].do_temp_sim=itemp[0];
+		if ((*simulations)[i].do_temp_sim==0) printf("Temporal simulation de-activated. \n\n");
+			else if ((*simulations)[i].do_temp_sim==1) {
+				printf("Temporal simulation activated. \n");
+			}
+			else {perror ("Error reading temporal simulaion flag");return 0;}
+
+		// Read temporal detector array center (2x float)
+		if(!readfloats(2, ftemp, pFile)){perror ("Error reading temporal detector array center");return 0;}
+		(*simulations)[i].det.x0_temp_det=ftemp[0];
+		(*simulations)[i].det.y0_temp_det=ftemp[1];
+		printf("Temporal detector array center= %f, %f\n\n",(*simulations)[i].det.x0_temp_det,(*simulations)[i].det.y0_temp_det);
+
+		// Read No. of temporal detectors  (2x int)
+		if(!readints(2, itemp, pFile)){perror ("Error reading No. of temporal detectors");return 0;}
+		(*simulations)[i].det.x_temp_numdets=itemp[0];
+		(*simulations)[i].det.y_temp_numdets=itemp[1];
+		printf("Number of temporal detectors= %u, %u\n",(*simulations)[i].det.x_temp_numdets,(*simulations)[i].det.y_temp_numdets);
+
+		// Read temporal detector separations (2x float)
+		if(!readfloats(2, ftemp, pFile)){perror ("Error reading temporal detector separation");return 0;}
+		(*simulations)[i].det.x_temp_sepdets=ftemp[0];
+		(*simulations)[i].det.y_temp_sepdets=ftemp[1];
+		printf("Temporal detector separation= %f, %f\n\n",(*simulations)[i].det.x_temp_sepdets,(*simulations)[i].det.y_temp_sepdets);
+
+		// Read temporal detector radius (1x float)
+		if(!readfloats(1, ftemp, pFile)){perror ("Error temporal detector radius");return 0;}
+		(*simulations)[i].det.temp_det_r=ftemp[0];
+		printf("Source postion= %f\n\n",(*simulations)[i].det.temp_det_r);
+
+
+
 		if ((*simulations)[i].bulk_method==1){
+			// Single spherical inclusion in homogeneous layered medium
+
 			// Read No. of layers (1x int)
 			if(!readints(1, itemp, pFile)){perror ("Error reading No. of layers");return 0;}
 			n_layers = itemp[0];
