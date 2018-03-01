@@ -90,6 +90,9 @@ typedef struct __align__ (16)
 								float x_temp_sepdets; //Separation of temporal detectors in x axis [cm]
 								float y_temp_sepdets; //Separation of temporal detectors in y axis [cm]
 								float temp_det_r; //Temporal detector radius
+								unsigned int temp_rort; //Location of the detector array: 0 reflectance, 1 Transmitance
+								unsigned long temp_bins; //Number of temporal temp_bins
+								unsigned long max_temp; //Maximum temporal value
 } DetStruct;
 
 typedef struct //__align__(16)
@@ -184,5 +187,5 @@ typedef struct
 
 								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
 
-
+								unsigned long* temp_xy; // 3D Matric with the temporal histogram in each detector
 }MemStruct;
