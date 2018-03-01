@@ -370,7 +370,27 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		// Read temporal detector radius (1x float)
 		if(!readfloats(1, ftemp, pFile)){perror ("Error temporal detector radius");return 0;}
 		(*simulations)[i].det.temp_det_r=ftemp[0];
-		printf("Source postion= %f\n\n",(*simulations)[i].det.temp_det_r);
+		printf("Source postion= %f\n",(*simulations)[i].det.temp_det_r);
+
+		// Location of detector array flag
+		if(!readints(1, itemp, pFile)){perror ("Error reading location of detector array flag");return 0;}
+		(*simulations)[i].det.temp_rort=itemp[0];
+		if ((*simulations)[i].do_temp_rort==0) printf("Temporal detector array located in entry face. \n");
+			else if ((*simulations)[i].do_temp_sim==1) {
+				printf("Temporal detector array located in exit face. \n");
+			}
+			else {perror ("Error reading location of detector array flag");return 0;}
+
+		// Read No. of temporal bins (1x int)
+		if(!readints(1, itemp, pFile)){perror ("Error reading No. of temporal bins");return 0;}
+		(*simulations)[i].det.temp_bins=itemp[0];
+		printf("Number of temporal bins= %u\n",(*simulations)[i].det.temp_bins);
+
+		// Read max temps (1x int)
+		if(!readints(1, itemp, pFile)){perror ("Error reading max temp");return 0;}
+		(*simulations)[i].det.max_temp=itemp[0];
+		printf("Max temporal value [fs]= %u\n\n",(*simulations)[i].det.max_temp);
+
 
 
 
