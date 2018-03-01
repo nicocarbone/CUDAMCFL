@@ -21,7 +21,12 @@ sample1-out 	A	      	                                                        # 
 0.04	0.04              	                                                    # Image dx, dy
 250	250      	       	                                                        # Image No. of dx, dy
 0.0	0.0      	       	                                                        # Image x0, y0
--4 0 0                                                                     # Source position x y z
+-4 0 0                                                                        # Source position x y z
+1                                                                             # Do temporal simulation? 0: no, 1: yes
+0 0                                                                           # Detector array center x,y
+60  1                                                                         # Number of detectors,  x,y
+0.1 0.1                                                                       # Separation between detectors [cm] x,y
+0.1                                                                           # Temporal detector radious [cm]
 
 1                        	                                                    # Number of layers
 #n	mua	mus 	flc AbsCExi AbsCEmi eY	g	d         	                          # One line for each layer
