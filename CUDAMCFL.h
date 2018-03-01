@@ -82,6 +82,14 @@ typedef struct __align__ (16)
 								float y0; // X coordinate origin of detection grid
 
 								float sep; // Separacion fibra de detaccion - eje optico TODO: remove.
+
+								float x0_temp_det; //x center of temporal array of detectors
+								float y0_temp_det; //y center of temporal array of detectors
+								unsigned int x_temp_numdets; //Number of temporal detectors in x axis
+								unsigned int y_temp_numdets; //Number of temporal detectors in y axis
+								float x_temp_sepdets; //Separation of temporal detectors in x axis [cm]
+								float y_temp_sepdets; //Separation of temporal detectors in y axis [cm]
+								float temp_det_r; //Temporal detector radius
 } DetStruct;
 
 typedef struct //__align__(16)
@@ -155,10 +163,6 @@ typedef struct
 								char bulkinfo_filename[STR_LEN]; // external fila containing the bulk information for method 2
 
 								int do_temp_sim; //0: don't do temporal sim, 1: do temporal sim
-								int x_temp_dets; //Number of temporal detectors in x axis
-								int y_temp_dets; //Number of temporal detectors in y axis
-								float x_sep_dets; //Separation of temporal detectors in x axis
-								float y_sep_dets; //Separation of temporal detectors in y axis
 
 }SimulationStruct;
 
