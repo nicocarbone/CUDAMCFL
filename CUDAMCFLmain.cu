@@ -76,7 +76,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   const long num_tbins = simulations[0].det.temp_bins;
   const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
 
-  
+
   cudaError_t cudastat;
   clock_t time1, time2;
 
@@ -90,6 +90,17 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   InitMemStructs(&HostMem, &DeviceMem, simulation);
 
   InitDCMem(simulation);
+
+  if (simulation->do_temp_sim == 1) {
+    for (int xi = 0; xi < num_x_det; xi++) {
+      HostMem.tdet_pos_x[xi] = xi * simulations[0].det.x_temp_sepdets - (num_x_det * simulations[0].det.x_temp_sepdets)/2 + simulations[0].det.x0_temp_det;
+    }
+    for (int yi = 0; yi < num_y_det; yi++) {
+      HostMem.tdet_pos_x[yi] = yi * simulations[0].det.y_temp_sepdets - (num_y_det * simulations[0].det.y_temp_sepdets)/2 + simulations[0].det.y0_temp_det;
+    }
+    CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_x, DeviceMem.tdet_pos_x, num_x_det * sizeof(float), cudaMemcpyDeviceToHost));
+    CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_y, DeviceMem.tdet_pos_y, num_y_det * sizeof(float), cudaMemcpyDeviceToHost));
+  }
 
   dim3 dimBlock(NUM_THREADS_PER_BLOCK);
   dim3 dimGrid(NUM_BLOCKS);
