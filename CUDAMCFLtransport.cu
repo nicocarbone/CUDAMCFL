@@ -48,6 +48,11 @@ __global__ void MCd(MemStruct DeviceMem)
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
+  // Size of time array
+  const int num_x_tdet = det_dc[0].x_temp_numdets;
+  const int num_y_tdet = det_dc[0].y_temp_numdets;
+  const long num_tbins = det_dc[0].temp_bins;
+
   unsigned long long int x=DeviceMem.x[begin+tx];//coherent
 	unsigned int a=DeviceMem.a[begin+tx];//coherent
 
@@ -142,6 +147,18 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
     				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
     			}
+          if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==0 && p.tof<*det_dc[0].max_temp){
+            // Save time value in apropiate bin
+            for (int xpos = 0; xpos < num_x_tdet; xpos++){
+              for (int ypos = 0; ypos < num_y_tdet; ypos++){
+                if ((fabsf(p.x - DeviceMem.tdet_pos_x[xpos]) + fabsf(p.x - DeviceMem.tdet_pos_x[xpos])) < (det_dc[0].temp_det_r) * (det_dc[0].temp_det_r)){
+                  // Inside time detector
+                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+                  if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+                }
+              }
+            }
+          }
           p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
         }
 
@@ -154,6 +171,20 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
             if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
           }
+          if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==1 && p.tof<*det_dc[0].max_temp){
+            // Save time value in apropiate bin
+            for (int xpos = 0; xpos < num_x_tdet; xpos++){
+              for (int ypos = 0; ypos < num_y_tdet; ypos++){
+                if ((fabsf(p.x - DeviceMem.tdet_pos_x[xpos]) + fabsf(p.x - DeviceMem.tdet_pos_x[xpos])) < (det_dc[0].temp_det_r) * (det_dc[0].temp_det_r)){
+                  // Inside time detector
+                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+                  if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+                }
+              }
+            }
+          }
+
+
 					p.weight = 0; // Set the remaining weight to 0, killing the photon
         }
 			}
@@ -228,6 +259,11 @@ __global__ void MCd3D(MemStruct DeviceMem)
   // Size of output images
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
+
+  // Size of time array
+  const int num_x_tdet = det_dc[0].x_temp_numdets;
+  const int num_y_tdet = det_dc[0].y_temp_numdets;
+  const long num_tbins = det_dc[0].temp_bins;
 
   // Last Bulk
   const unsigned short last_bulk = *n_bulks_dc+1;
@@ -342,6 +378,20 @@ __global__ void MCd3D(MemStruct DeviceMem)
               __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
 				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
+
+      if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==0 && p.tof<*det_dc[0].max_temp){
+        // Save time value in apropiate bin
+        for (int xpos = 0; xpos < num_x_tdet; xpos++){
+          for (int ypos = 0; ypos < num_y_tdet; ypos++){
+            if ((fabsf(p.x - DeviceMem.tdet_pos_x[xpos]) + fabsf(p.x - DeviceMem.tdet_pos_x[xpos])) < (det_dc[0].temp_det_r) * (det_dc[0].temp_det_r)){
+              // Inside time detector
+              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+              if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+            }
+          }
+        }
+      }
+
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
       s = 0.0f;
     }
@@ -355,6 +405,20 @@ __global__ void MCd3D(MemStruct DeviceMem)
               __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
         if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
+
+      if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==1 && p.tof<*det_dc[0].max_temp){
+        // Save time value in apropiate bin
+        for (int xpos = 0; xpos < num_x_tdet; xpos++){
+          for (int ypos = 0; ypos < num_y_tdet; ypos++){
+            if ((fabsf(p.x - DeviceMem.tdet_pos_x[xpos]) + fabsf(p.x - DeviceMem.tdet_pos_x[xpos])) < (det_dc[0].temp_det_r) * (det_dc[0].temp_det_r)){
+              // Inside time detector
+              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+              if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+            }
+          }
+        }
+      }
+
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
       s = 0.0f;
       }

@@ -92,7 +92,7 @@ typedef struct __align__ (16)
 								float temp_det_r; //Temporal detector radius
 								unsigned int temp_rort; //Location of the detector array: 0 reflectance, 1 Transmitance
 								unsigned long temp_bins; //Number of temporal bins
-								unsigned long max_temp; //Maximum temporal value
+								unsigned long max_temp; //Maximum temporal value [fs]
 } DetStruct;
 
 typedef struct //__align__(16)
