@@ -39,4 +39,4 @@ sample2-out 	A	      	                                                        # 
 1.33 0.04 48 10e-9 339625. 219500. 0.043 0.8                                  # layer 1
 1.33 0.08 48 50e-9 339625  219500  0.043 0.8
 1                        	                                                    # n for medium below
-3Dbulk-sample                                                                 # name of external 3D matrix describing the medium. Ignored if method 1
+3dbulk-sample                                                                 # name of external 3D matrix describing the medium. Ignored if method 1
