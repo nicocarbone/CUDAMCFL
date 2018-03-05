@@ -179,9 +179,9 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 		for (int ix = 0; ix < xtnum; ix++) {
       for (int iy = 0; iy < ytnum; iy++) {
 				// TODO: print position?
-        for (int it = 0; iz < ttnum; it++) {
-					int index = ix + num_x * (iy + iz * num_y);
-					fprintf(reflFile_out," %E ",(double)HostMem.time_xyt[index]/(0xFFFFFFFF*photons_finished));
+        for (int it = 0; it < ttnum; it++) {
+					int index = ix + xtnum * (iy + iz * ytnum);
+					fprintf(reflFile_out," %E ",(double)HostMem.time_xyt[index]/scale1);
 					}
 				fprintf(reflFile_out," \n ");
 			}
@@ -404,8 +404,8 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		// Location of detector array flag
 		if(!readints(1, itemp, pFile)){perror ("Error reading location of detector array flag");return 0;}
 		(*simulations)[i].det.temp_rort=itemp[0];
-		if ((*simulations)[i].do_temp_rort==0) printf("Temporal detector array located in entry face. \n");
-			else if ((*simulations)[i].do_temp_sim==1) {
+		if ((*simulations)[i].det.temp_rort==0) printf("Temporal detector array located in entry face. \n");
+			else if ((*simulations)[i].det.temp_sim==1) {
 				printf("Temporal detector array located in exit face. \n");
 			}
 			else {perror ("Error reading location of detector array flag");return 0;}

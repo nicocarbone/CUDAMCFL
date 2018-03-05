@@ -23,9 +23,9 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
-	const int num_x_tdet = sim->.det.x_temp_numdets;
-  const int num_y_tdet = sim->.det.y_temp_numdets;
-  const long num_tbins = sim->.det.temp_bins;
+	const int num_x_tdet = sim->det.x_temp_numdets;
+  const int num_y_tdet = sim->det.y_temp_numdets;
+  const long num_tbins = sim->det.temp_bins;
   const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
 
 	// Copy Rd_xy, Tt_xy and A_xyz
@@ -117,9 +117,9 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
-	const int num_x_tdet = sim->.det.x_temp_numdets;
-  const int num_y_tdet = sim->.det.y_temp_numdets;
-  const long num_tbins = sim->.det.temp_bins;
+	const int num_x_tdet = sim->det.x_temp_numdets;
+  const int num_y_tdet = sim->det.y_temp_numdets;
+  const long num_tbins = sim->det.temp_bins;
   const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
 
 	// Allocate p on the device

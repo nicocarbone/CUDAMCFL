@@ -58,7 +58,7 @@ __device__ __constant__ unsigned int max_temp_dc[1];
 
 // wrapper for device code - FHD Simulation
 unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long long *x,
-                     unsigned int *a, double *tempfhd, double* temptdist) {
+                     unsigned int *a, double *tempfhd) {
   MemStruct DeviceMem;
   MemStruct HostMem;
   unsigned int threads_active_total = 1;
@@ -71,9 +71,9 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   const int fhd_size = num_x * num_y * num_z;
 
   // Output temporal detectors
-  const int num_x_tdet = simulations[0].det.x_temp_numdets;
-  const int num_y_tdet = simulations[0].det.y_temp_numdets;
-  const long num_tbins = simulations[0].det.temp_bins;
+  const int num_x_tdet = simulation->det.x_temp_numdets;
+  const int num_y_tdet = simulation->det.y_temp_numdets;
+  const long num_tbins = simulation->det.temp_bins;
   const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
 
 
@@ -92,11 +92,11 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   InitDCMem(simulation);
 
   if (simulation->do_temp_sim == 1) {
-    for (int xi = 0; xi < num_x_det; xi++) {
-      HostMem.tdet_pos_x[xi] = xi * simulations[0].det.x_temp_sepdets - (num_x_det * simulations[0].det.x_temp_sepdets)/2 + simulations[0].det.x0_temp_det;
+    for (int xi = 0; xi < num_x_tdet; xi++) {
+      HostMem.tdet_pos_x[xi] = xi * simulation->det.x_temp_sepdets - (num_x_det * simulation->det.x_temp_sepdets)/2 + simulations[0].det.x0_temp_det;
     }
-    for (int yi = 0; yi < num_y_det; yi++) {
-      HostMem.tdet_pos_x[yi] = yi * simulations[0].det.y_temp_sepdets - (num_y_det * simulations[0].det.y_temp_sepdets)/2 + simulations[0].det.y0_temp_det;
+    for (int yi = 0; yi < num_y_tdet; yi++) {
+      HostMem.tdet_pos_x[yi] = yi * simulation->det.y_temp_sepdets - (num_y_det * simulation->det.y_temp_sepdets)/2 + simulations[0].det.y0_temp_det;
     }
     CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_x, DeviceMem.tdet_pos_x, num_x_det * sizeof(float), cudaMemcpyDeviceToHost));
     CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_y, DeviceMem.tdet_pos_y, num_y_det * sizeof(float), cudaMemcpyDeviceToHost));

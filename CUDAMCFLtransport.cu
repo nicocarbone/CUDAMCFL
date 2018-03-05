@@ -113,7 +113,7 @@ __global__ void MCd(MemStruct DeviceMem)
 		p.z += p.dz*s;
 
     //Update time of flight
-    p.tof += (unsigned long)(s/C_CMFT);
+    p.tof += (unsigned long)(s/C_CMFS);
 
     if(p.z>layers_dc[p.layer].z_max)p.z=layers_dc[p.layer].z_max;//needed? TODO
 		if(p.z<layers_dc[p.layer].z_min)p.z=layers_dc[p.layer].z_min;//needed? TODO
@@ -147,7 +147,7 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
     				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
     			}
-          if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==0 && p.tof<*det_dc[0].max_temp){
+          if (do_temp_sim_dc==1 && det_dc[0].temp_rort==0 && p.tof<det_dc[0].max_temp){
             // Save time value in apropiate bin
             for (int xpos = 0; xpos < num_x_tdet; xpos++){
               for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -171,7 +171,7 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
             if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
           }
-          if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==1 && p.tof<*det_dc[0].max_temp){
+          if (do_temp_sim_dc==1 && det_dc[0].temp_rort==1 && p.tof<det_dc[0].max_temp){
             // Save time value in apropiate bin
             for (int xpos = 0; xpos < num_x_tdet; xpos++){
               for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -315,7 +315,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
       p.z += p.dz*s;
 
       //Update time of flight
-      p.tof += (unsigned long)(s/C_CMFT);
+      p.tof += (unsigned long)(s/C_CMFS);
 
       // Retrieve bulk position
       if(new_bulk!=0 && new_bulk!=last_bulk) {
@@ -379,7 +379,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
 
-      if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==0 && p.tof<*det_dc[0].max_temp){
+      if (do_temp_sim_dc==1 && det_dc[0].temp_rort==0 && p.tof<det_dc[0].max_temp){
         // Save time value in apropiate bin
         for (int xpos = 0; xpos < num_x_tdet; xpos++){
           for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -406,7 +406,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
         if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
 
-      if (*do_temp_sim_dc==1 && *det_dc[0].temp_rort==1 && p.tof<*det_dc[0].max_temp){
+      if (do_temp_sim_dc==1 && det_dc[0].temp_rort==1 && p.tof<det_dc[0].max_temp){
         // Save time value in apropiate bin
         for (int xpos = 0; xpos < num_x_tdet; xpos++){
           for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -725,7 +725,7 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
     p->z += (p->dz)*search_step;
 
     //Update time of flight
-    p.tof += (unsigned long)(search_step/C_CMFT);
+    p.tof += (unsigned long)(search_step/C_CMFS);
 
     //Check for upwards reflection/transmission
     if(p->z+p->dz*search_step<0.) {
@@ -832,7 +832,7 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
           p->z = new_pz1;
 
           //Update time of flight
-          p.tof -= (unsigned long)(back_step1/C_CMFT);
+          p.tof -= (unsigned long)(back_step1/C_CMFS);
           }
         else {
           p->x = new_px2;
@@ -840,7 +840,7 @@ __device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_
           p->z = new_pz2;
 
           //Update time of flight
-          p.tof -= (unsigned long)(back_step2/C_CMFT);
+          p.tof -= (unsigned long)(back_step2/C_CMFS);
         }
 
     //printf("%f %f %f, %f %f %f\n\n", p->x, p->y, p->z, x_voxel, y_voxel, z_voxel);
