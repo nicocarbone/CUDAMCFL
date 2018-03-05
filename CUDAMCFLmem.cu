@@ -23,12 +23,20 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
+	const int num_x_tdet = sim->.det.x_temp_numdets;
+  const int num_y_tdet = sim->.det.y_temp_numdets;
+  const long num_tbins = sim->.det.temp_bins;
+  const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
+
 	// Copy Rd_xy, Tt_xy and A_xyz
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->Rd_xy,DeviceMem->Rd_xy,xy_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->Tt_xy,DeviceMem->Tt_xy,xy_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
 	// Copy fhd
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->fhd,DeviceMem->fhd,fhd_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
+
+	// Copy time array
+	CUDA_SAFE_CALL( cudaMemcpy(HostMem->time_xyt,DeviceMem->time_xyt,timegrid_size*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
 
 	// Copy the state of the RNG's
 	CUDA_SAFE_CALL( cudaMemcpy(HostMem->x,DeviceMem->x,NUM_THREADS*sizeof(unsigned long long),cudaMemcpyDeviceToHost) );
@@ -49,6 +57,10 @@ int InitDCMem(SimulationStruct* sim)
 
 	// Copy bulk method flag
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(bulk_method_dc,&(sim->bulk_method),sizeof(unsigned int)) );
+
+	// Copy time sim flag
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol(do_temp_sim_dc,&(sim->do_temp_sim),sizeof(unsigned int)) );
+
 
 	// Copy det-data to constant device memory
 	CUDA_SAFE_CALL( cudaMemcpyToSymbol(det_dc,&(sim->det),sizeof(DetStruct)) );
@@ -105,6 +117,11 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
+	const int num_x_tdet = sim->.det.x_temp_numdets;
+  const int num_y_tdet = sim->.det.y_temp_numdets;
+  const long num_tbins = sim->.det.temp_bins;
+  const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
+
 	// Allocate p on the device
 	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->p,NUM_THREADS*sizeof(PhotonStruct)) );
 
@@ -125,6 +142,24 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	if(HostMem->fhd==NULL){printf("Error allocating HostMem->fhd"); exit (1);}
 	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->fhd,fhd_size*sizeof(unsigned long long)) );
 	CUDA_SAFE_CALL( cudaMemset(DeviceMem->fhd,0,fhd_size*sizeof(unsigned long long)) );
+
+	// Allocate timegrid on CPU and GPU
+	HostMem->time_xyt = (unsigned long long*) malloc(timegrid_size*sizeof(unsigned long long));
+	if(HostMem->fhd==NULL){printf("Error allocating HostMem->time_xyt"); exit (1);}
+	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->time_xyt,timegrid_size*sizeof(unsigned long long)) );
+	CUDA_SAFE_CALL( cudaMemset(DeviceMem->time_xyt,0,timegrid_size*sizeof(unsigned long long)) );
+
+	// Allocate x time detectors
+	HostMem->tdet_pos_x = (float*) malloc(num_x_tdet*sizeof(float));
+	if(HostMem->tdet_pos_x==NULL){printf("Error allocating HostMem->tdet_pos_x"); exit (1);}
+	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->tdet_pos_x,num_x_tdet*sizeof(float)) );
+	CUDA_SAFE_CALL( cudaMemset(DeviceMem->tdet_pos_x,0,num_x_tdet*sizeof(float)) );
+
+	// Allocate y time detectors
+	HostMem->tdet_pos_y = (float*) malloc(num_y_tdet*sizeof(float));
+	if(HostMem->tdet_pos_y==NULL){printf("Error allocating HostMem->tdet_pos_y"); exit (1);}
+	CUDA_SAFE_CALL( cudaMalloc((void**)&DeviceMem->tdet_pos_y,num_y_tdet*sizeof(float)) );
+	CUDA_SAFE_CALL( cudaMemset(DeviceMem->tdet_pos_y,0,num_y_tdet*sizeof(float)) );
 
 	// Allocate x and a on the device (For MWC RNG)
   CUDA_SAFE_CALL(cudaMalloc((void**)&DeviceMem->x,NUM_THREADS*sizeof(unsigned long long)));
@@ -159,6 +194,9 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 {
 	free(HostMem->Rd_xy);
 	free(HostMem->Tt_xy);
+	free(HostMem->time_xyt);
+	free(HostMem->tdet_pos_x);
+	free(HostMem->tdet_pos_y);
 	free(HostMem->fhd);
 	free(HostMem->thread_active);
 	free(HostMem->num_terminated_photons);
@@ -166,6 +204,9 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 	cudaFree(DeviceMem->p);
 	cudaFree(DeviceMem->Rd_xy);
 	cudaFree(DeviceMem->Tt_xy);
+	cudaFree(DeviceMem->time_xyt);
+	cudaFree(DeviceMem->tdet_pos_x);
+	cudaFree(DeviceMem->tdet_pos_y);
 	cudaFree(DeviceMem->fhd);
 	cudaFree(DeviceMem->bulk_info);
 	cudaFree(DeviceMem->x);
