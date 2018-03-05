@@ -49,6 +49,7 @@ __device__ __constant__ float zi_dc[1];
 __device__ __constant__ float dir_dc[1];
 __device__ __constant__ float esp_dc[1];
 __device__ __constant__ unsigned int grid_size_dc[1];
+__device__ __constant__ unsigned int max_temp_dc[1];
 
 #include "CUDAMCFLio.cu"
 #include "CUDAMCFLmem.cu"
