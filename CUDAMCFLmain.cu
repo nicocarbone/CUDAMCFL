@@ -41,6 +41,7 @@ __device__ __constant__ DetStruct det_dc[1];
 __device__ __constant__ IncStruct inclusion_dc[1];
 __device__ __constant__ unsigned int ignoreAdetection_dc[1];
 __device__ __constant__ unsigned int fhd_activated_dc[1];
+__device__ __constant__ unsigned int do_temp_sim_dc[1];
 __device__ __constant__ unsigned int bulk_method_dc[1];
 __device__ __constant__ float xi_dc[1];
 __device__ __constant__ float yi_dc[1];
@@ -56,7 +57,7 @@ __device__ __constant__ unsigned int grid_size_dc[1];
 
 // wrapper for device code - FHD Simulation
 unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long long *x,
-                     unsigned int *a, double *tempfhd) {
+                     unsigned int *a, double *tempfhd, double* temptdist) {
   MemStruct DeviceMem;
   MemStruct HostMem;
   unsigned int threads_active_total = 1;
@@ -67,6 +68,12 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   const int num_y = (int)(4 * (simulation->esp) * (float)simulation->grid_size);
   const int num_z = (int)((simulation->esp) * (float)simulation->grid_size);
   const int fhd_size = num_x * num_y * num_z;
+
+  // Output temporal detectors
+  const int num_x_tdet = simulations[0].det.x_temp_numdets;
+  const int num_y_tdet = simulations[0].det.y_temp_numdets;
+  const long num_tbins = simulations[0].det.temp_bins;
+  const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
 
   cudaError_t cudastat;
   clock_t time1, time2;
@@ -161,6 +168,11 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   for (int xyz = 0; xyz < fhd_size; xyz++) {
     tempfhd[xyz] = ((double)HostMem.fhd[xyz]/(0xFFFFFFFF*photons_finished));
   }
+
+  // Normalize and write output matrix
+  //for (int xyz = 0; xyz < timegrid_size; xyz++) {
+  //  tgrid[xyz] = ((double)HostMem.temp_xyt[xyz]/(0xFFFFFFFF*photons_finished));
+  //}
 
   printf ("Photons simulated: %llu\n\n", photons_finished);
   FreeMemStructs(&HostMem, &DeviceMem);
@@ -316,6 +328,15 @@ int main(int argc, char *argv[]) {
 
   const int fhd_size = num_x * num_y * num_z; //x + HEIGHT* (y + WIDTH* z)
 
+
+  // Store in local variables the number of time detectors
+
+  const int num_x_tdet = simulations[0].det.x_temp_numdets;
+  const int num_y_tdet = simulations[0].det.y_temp_numdets;
+  const long num_tbins = simulations[0].det.temp_bins;
+
+  const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
+
   // FHD simulation
   // Run a simulation
 
@@ -325,6 +346,10 @@ int main(int argc, char *argv[]) {
 
   double *Fx;
   Fx = (double *)malloc((fhd_size) * sizeof(double));
+
+  //double *Tgrid;
+  //Tgrid = (double *)malloc((timegrid_size) * sizeof(double));
+
   fhd_sim_photons = DoOneSimulation(&simulations[0], x, a, Fx);
 
   if(simulations[0].fhd_activated==1){
@@ -352,7 +377,7 @@ int main(int argc, char *argv[]) {
 
      fclose(fhd3DaFile_out);
    }
-   
+
   /*
   // Binary file
   FILE *fhd3DbFile_out;
