@@ -181,7 +181,7 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 				// TODO: print position?
         for (int it = 0; iz < ttnum; it++) {
 					int index = ix + num_x * (iy + iz * num_y);
-					fprintf(reflFile_out," %E ",(double)HostMem.temp_xyt[index]/(0xFFFFFFFF*photons_finished));
+					fprintf(reflFile_out," %E ",(double)HostMem.time_xyt[index]/(0xFFFFFFFF*photons_finished));
 					}
 				fprintf(reflFile_out," \n ");
 			}

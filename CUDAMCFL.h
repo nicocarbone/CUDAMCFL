@@ -187,5 +187,5 @@ typedef struct
 
 								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
 
-								unsigned long* temp_xyt; // 3D Matric with the temporal histogram in each detector
+								unsigned long* time_xyt; // 3D Matric with the temporal histogram in each detector
 }MemStruct;

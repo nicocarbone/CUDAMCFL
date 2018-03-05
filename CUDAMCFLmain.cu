@@ -171,7 +171,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
   // Normalize and write output matrix
   //for (int xyz = 0; xyz < timegrid_size; xyz++) {
-  //  tgrid[xyz] = ((double)HostMem.temp_xyt[xyz]/(0xFFFFFFFF*photons_finished));
+  //  tgrid[xyz] = ((double)HostMem.time_xyt[xyz]/(0xFFFFFFFF*photons_finished));
   //}
 
   printf ("Photons simulated: %llu\n\n", photons_finished);
