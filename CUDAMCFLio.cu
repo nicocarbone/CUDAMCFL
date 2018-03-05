@@ -68,6 +68,15 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 	const int nx=sim->det.nx;			// Number of grid elements in x-direction
 	const int ny=sim->det.ny;			// Number of grid elements in y-direction
 
+	const int xtnum=sim->det.x_temp_numdets; // Number of time detectors in x axis
+	const int ytnum=sim->det.y_temp_numdets; // Number of time detectors in y axis
+	const long ttnum=sim->det.temp_bins; // Number of time bins
+	const float xtsep=sim->det.x_temp_sepdets; // Separation between detectors in x axis
+	const float	ytsep=sim->det.y_temp_sepdets; // Separation beteween detectos in y axis
+	const float x0t=sim->det.x0_temp_det; // Central position of detector array in x axis
+	const float y0t=sim->det.y0_temp_det; // Central position of detector array in y axis
+	const long maxt=sim->det.max_temp; // Max time of arrat [fs]
+
 	int x,y;
 
 	const double scale1 = (double)0xFFFFFFFF*(double)sim->number_of_photons; // Number of photons (used to normalize)
@@ -158,6 +167,26 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 
 	return 0;
 
+	// Time file
+	if (sim->do_temp_sim==1){
+		FILE *timeFile_out;
+		char filenameretime[STR_LEN];
+		for (int ic=0; ic<STR_LEN; ic++) filenameretime[ic] = sim->outp_filename[ic];
+		strcat(filenameretime, "_time.dat");
+		timeFile_out = fopen (filenameretime , "w");
+		if (timeFile_out == NULL){perror ("Error opening time output file");return 0;}
+
+		for (int ix = 0; ix < xtnum; ix++) {
+      for (int iy = 0; iy < ytnum; iy++) {
+				// TODO: print position?
+        for (int it = 0; iz < ttnum; it++) {
+					int index = ix + num_x * (iy + iz * num_y);
+					fprintf(reflFile_out," %E ",(double)HostMem.temp_xyt[index]/(0xFFFFFFFF*photons_finished));
+					}
+				fprintf(reflFile_out," \n ");
+			}
+		}
+	}
 }
 
 int isnumeric(char a)
