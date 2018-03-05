@@ -76,6 +76,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
   const long num_tbins = simulations[0].det.temp_bins;
   const long timegrid_size = num_x_tdet * num_y_tdet * num_tbins;
 
+  
   cudaError_t cudastat;
   clock_t time1, time2;
 
