@@ -147,7 +147,7 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
     				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
     			}
-          if (do_temp_sim_dc==1u && det_dc[0].temp_rort==0u && p.tof<det_dc[0].max_temp){
+          if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==0u && p.tof<det_dc[0].max_temp){
             // Save time value in apropiate bin
             for (int xpos = 0; xpos < num_x_tdet; xpos++){
               for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -171,7 +171,7 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
             if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
           }
-          if (do_temp_sim_dc==1u && det_dc[0].temp_rort==1u && p.tof<det_dc[0].max_temp){
+          if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==1u && p.tof<det_dc[0].max_temp){
             // Save time value in apropiate bin
             for (int xpos = 0; xpos < num_x_tdet; xpos++){
               for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -379,7 +379,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
 
-      if (do_temp_sim_dc==1u && det_dc[0].temp_rort==0u && p.tof<det_dc[0].max_temp){
+      if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==0u && p.tof<det_dc[0].max_temp){
         // Save time value in apropiate bin
         for (int xpos = 0; xpos < num_x_tdet; xpos++){
           for (int ypos = 0; ypos < num_y_tdet; ypos++){
@@ -406,7 +406,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
         if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
 
-      if (do_temp_sim_dc==1u && det_dc[0].temp_rort==1u && p.tof<det_dc[0].max_temp){
+      if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==1u && p.tof<det_dc[0].max_temp){
         // Save time value in apropiate bin
         for (int xpos = 0; xpos < num_x_tdet; xpos++){
           for (int ypos = 0; ypos < num_y_tdet; ypos++){
