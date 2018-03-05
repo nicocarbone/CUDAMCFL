@@ -165,10 +165,9 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 
 	fclose(reflFile_out);
 
-	return 0;
-
 	// Time file
 	if (sim->do_temp_sim==1){
+		printf("Writing time simulation data...\n");
 		FILE *timeFile_out;
 		char filenameretime[STR_LEN];
 		for (int ic=0; ic<STR_LEN; ic++) filenameretime[ic] = sim->outp_filename[ic];
@@ -187,6 +186,8 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 			}
 		}
 	}
+
+return 0;
 }
 
 int isnumeric(char a)
