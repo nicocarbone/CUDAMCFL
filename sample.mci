@@ -14,7 +14,7 @@
 #InParm                    	                                                  # Input parameters. cm is used.
 1                                                                             # Bulk description method. 1: single spherical inclusion in homogeneous medium, 2: 3D matrix with bulk descriptors
 sample1-out 	A	      	                                                        # output file name, ASCII
-5000000000                  	                                                # No. of photons
+500000000                   	                                                # No. of photons
 80000                                                                         # No. of photons per voxel (fluorescence)
 5                                                                              # Grid finesse (voxel size: 1cm/this)
 1                                                                             # Do fluorescence simulation? 0: no, 1: do reflectance
@@ -24,9 +24,9 @@ sample1-out 	A	      	                                                        # 
 -4 0 0                                                                        # Source position x y z
 1                                                                             # Do temporal simulation? 0: no, 1: yes
 0 0                                                                           # Detector array center x,y
-60  1                                                                         # Number of detectors,  x,y
-0.1 0.1                                                                       # Separation between detectors [cm] x,y
-0.1                                                                           # Temporal detector radious [cm]
+2 1                                                                          # Number of detectors,  x,y
+1 1                                                                           # Separation between detectors [cm] x,y
+0.5                                                                           # Temporal detector radious [cm]
 0                                                                             # Location of the detector array. 0: reflectance, 1:Transmitance
 1000                                                                          # Number of temporal temporal bins.
 20000000                                                                      # Max temp [fs]
