@@ -93,10 +93,10 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
   if (simulation->do_temp_sim == 1) {
     for (int xi = 0; xi < num_x_tdet; xi++) {
-      HostMem.tdet_pos_x[xi] = xi * simulation->det.x_temp_sepdets - (num_x_tdet * simulation->det.x_temp_sepdets)/2 + simulation->det.x0_temp_det;
+      HostMem.tdet_pos_x[xi] = xi * simulation->det.x_temp_sepdets - ((num_x_tdet-1) * simulation->det.x_temp_sepdets)/2 + simulation->det.x0_temp_det;
     }
     for (int yi = 0; yi < num_y_tdet; yi++) {
-      HostMem.tdet_pos_y[yi] = yi * simulation->det.y_temp_sepdets - (num_y_tdet * simulation->det.y_temp_sepdets)/2 + simulation->det.y0_temp_det;
+      HostMem.tdet_pos_y[yi] = yi * simulation->det.y_temp_sepdets - ((num_y_tdet-1) * simulation->det.y_temp_sepdets)/2 + simulation->det.y0_temp_det;
     }
     CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_x, DeviceMem.tdet_pos_x, num_x_tdet * sizeof(float), cudaMemcpyDeviceToHost));
     CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_y, DeviceMem.tdet_pos_y, num_y_tdet * sizeof(float), cudaMemcpyDeviceToHost));
