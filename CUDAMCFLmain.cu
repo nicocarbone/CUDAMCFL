@@ -98,8 +98,8 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
     for (int yi = 0; yi < num_y_tdet; yi++) {
       HostMem.tdet_pos_y[yi] = yi * simulation->det.y_temp_sepdets - ((num_y_tdet-1) * simulation->det.y_temp_sepdets)/2 + simulation->det.y0_temp_det;
     }
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_x, DeviceMem.tdet_pos_x, num_x_tdet * sizeof(float), cudaMemcpyDeviceToHost));
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.tdet_pos_y, DeviceMem.tdet_pos_y, num_y_tdet * sizeof(float), cudaMemcpyDeviceToHost));
+    CUDA_SAFE_CALL(cudaMemcpy(DeviceMem.tdet_pos_x, HostMem.tdet_pos_x, num_x_tdet * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(DeviceMem.tdet_pos_y, HostMem.tdet_pos_y, num_y_tdet * sizeof(float), cudaMemcpyHostToDevice));
   }
 
   dim3 dimBlock(NUM_THREADS_PER_BLOCK);
