@@ -177,7 +177,7 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 		fprintf(timeFile_out,"#x y timebins[numbins]\n");
 		for (int ix = 0; ix < xtnum; ix++) {
       for (int iy = 0; iy < ytnum; iy++) {
-				fprintf(timeFile_out,"%f %f ", HostMem->tdet_pos_x[ix], HostMem->tdet_pos_x[iy]);
+				fprintf(timeFile_out,"%f %f ", HostMem->tdet_pos_x[ix], HostMem->tdet_pos_y[iy]);
         for (int it = 0; it < ttnum; it++) {
 					int index = ix + xtnum * (iy + it * ytnum);
 					fprintf(timeFile_out," %E ",(double)HostMem->time_xyt[index]/scale1);
