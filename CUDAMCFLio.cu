@@ -395,12 +395,12 @@ int read_simulation_data(char* filename, SimulationStruct** simulations, int ign
 		if(!readfloats(2, ftemp, pFile)){perror ("Error reading temporal detector separation");return 0;}
 		(*simulations)[i].det.x_temp_sepdets=ftemp[0];
 		(*simulations)[i].det.y_temp_sepdets=ftemp[1];
-		printf("Temporal detector separation= %f, %f\n\n",(*simulations)[i].det.x_temp_sepdets,(*simulations)[i].det.y_temp_sepdets);
+		printf("Temporal detector separation= %f, %f\n",(*simulations)[i].det.x_temp_sepdets,(*simulations)[i].det.y_temp_sepdets);
 
 		// Read temporal detector radius (1x float)
-		if(!readfloats(1, ftemp, pFile)){perror ("Error temporal detector radius");return 0;}
+		if(!readfloats(1, ftemp, pFile)){perror ("Error temporal detector radious");return 0;}
 		(*simulations)[i].det.temp_det_r=ftemp[0];
-		printf("Source postion= %f\n",(*simulations)[i].det.temp_det_r);
+		printf("Source radious= %f\n",(*simulations)[i].det.temp_det_r);
 
 		// Location of detector array flag
 		if(!readints(1, itemp, pFile)){perror ("Error reading location of detector array flag");return 0;}
