@@ -174,10 +174,10 @@ int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t 
 		strcat(filenameretime, "_time.dat");
 		timeFile_out = fopen (filenameretime , "w");
 		if (timeFile_out == NULL){perror ("Error opening time output file");return 0;}
-
+		fprintf(timeFile_out,"#x y timebins[numbins]\n");
 		for (int ix = 0; ix < xtnum; ix++) {
       for (int iy = 0; iy < ytnum; iy++) {
-				// TODO: print position?
+				fprintf(timeFile_out,"%f %f ", HostMem->tdet_pos_x[ix], HostMem->tdet_pos_x[iy]);
         for (int it = 0; it < ttnum; it++) {
 					int index = ix + xtnum * (iy + it * ytnum);
 					fprintf(timeFile_out," %E ",(double)HostMem->time_xyt[index]/scale1);
