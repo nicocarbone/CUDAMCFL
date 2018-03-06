@@ -153,7 +153,7 @@ __global__ void MCd(MemStruct DeviceMem)
               for (int ypos = 0; ypos < num_y_tdet; ypos++){
                 if ((powf((p.x - DeviceMem.tdet_pos_x[xpos]),2) + powf((p.y - DeviceMem.tdet_pos_y[ypos]),2)) < powf((det_dc[0].temp_det_r),2)){
                   // Inside time detector ix + xtnum * (iy + it * ytnum);
-                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rn(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
                   if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
                 }
               }
@@ -177,7 +177,7 @@ __global__ void MCd(MemStruct DeviceMem)
               for (int ypos = 0; ypos < num_y_tdet; ypos++){
                 if ((powf((p.x - DeviceMem.tdet_pos_x[xpos]),2) + powf((p.y - DeviceMem.tdet_pos_y[ypos]),2)) < powf((det_dc[0].temp_det_r),2)){
                   // Inside time detector
-                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rn(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
                   if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
                 }
               }
@@ -385,7 +385,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
           for (int ypos = 0; ypos < num_y_tdet; ypos++){
             if ((powf((p.x - DeviceMem.tdet_pos_x[xpos]),2) + powf((p.y - DeviceMem.tdet_pos_y[ypos]),2)) < powf((det_dc[0].temp_det_r),2)){
               // Inside time detector
-              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rn(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
               if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
             }
           }
@@ -412,7 +412,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
           for (int ypos = 0; ypos < num_y_tdet; ypos++){
             if ((powf((p.x - DeviceMem.tdet_pos_x[xpos]),2) + powf((p.y - DeviceMem.tdet_pos_y[ypos]),2)) < powf((det_dc[0].temp_det_r),2)){
               // Inside time detector
-              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rn(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
               if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
             }
           }
