@@ -25,7 +25,7 @@
 */
 
 #include "CUDAMCFL.h"
-#include "cutil.h"
+//#include "cutil.h"
 //#include <float.h> //for FLT_MAX
 #include <limits.h>
 #include <stdio.h>
@@ -98,8 +98,8 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
     for (int yi = 0; yi < num_y_tdet; yi++) {
       HostMem.tdet_pos_y[yi] = yi * simulation->det.y_temp_sepdets - ((num_y_tdet-1) * simulation->det.y_temp_sepdets)/2 + simulation->det.y0_temp_det;
     }
-    CUDA_SAFE_CALL(cudaMemcpy(DeviceMem.tdet_pos_x, HostMem.tdet_pos_x, num_x_tdet * sizeof(float), cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpy(DeviceMem.tdet_pos_y, HostMem.tdet_pos_y, num_y_tdet * sizeof(float), cudaMemcpyHostToDevice));
+    cudaMemcpy(DeviceMem.tdet_pos_x, HostMem.tdet_pos_x, num_x_tdet * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(DeviceMem.tdet_pos_y, HostMem.tdet_pos_y, num_y_tdet * sizeof(float), cudaMemcpyHostToDevice);
   }
 
   dim3 dimBlock(NUM_THREADS_PER_BLOCK);
@@ -116,7 +116,7 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
 
   LaunchPhoton_Global<<<dimGrid, dimBlock>>>(DeviceMem);
   //LaunchPhoton_Global<<<minGridSize, blockSize>>>(DeviceMem);
-  CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
+  cudaThreadSynchronize(); // Wait for all threads to finish
   cudastat = cudaGetLastError();           // Check if there was an error
   if (cudastat)
     printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
@@ -136,22 +136,22 @@ unsigned long long DoOneSimulation(SimulationStruct *simulation, unsigned long l
       //MCd3D<<<minGridSize, blockSize>>>(DeviceMem);
     }
 
-    CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
+    cudaThreadSynchronize(); // Wait for all threads to finish
     cudastat = cudaGetLastError();           // Check if there was an error
     if (cudastat)
       printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
     // Copy thread_active from device to host
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active,
-                              NUM_THREADS * sizeof(unsigned int),
-                              cudaMemcpyDeviceToHost));
+    cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active,
+               NUM_THREADS * sizeof(unsigned int),
+               cudaMemcpyDeviceToHost);
     threads_active_total = 0;
     for (ii = 0; ii < NUM_THREADS; ii++)
       threads_active_total += HostMem.thread_active[ii];
 
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,
-                              DeviceMem.num_terminated_photons,
-                              sizeof(unsigned long long), cudaMemcpyDeviceToHost));
+    cudaMemcpy(HostMem.num_terminated_photons,
+               DeviceMem.num_terminated_photons,
+               sizeof(unsigned long long), cudaMemcpyDeviceToHost);
     if (i == 100)
       printf("Estimated PHD simulation time: %.0f secs.\n\n",
              (double)(clock() - time1) / CLOCKS_PER_SEC *
@@ -229,7 +229,7 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
   LaunchPhoton_Global<<<dimGrid, dimBlock>>>(DeviceMem);
   //LaunchPhoton_Global<<<minGridSize, blockSize>>>(DeviceMem);
 
-  CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
+  cudaThreadSynchronize(); // Wait for all threads to finish
   cudastat = cudaGetLastError();           // Check if there was an error
   if (cudastat)
     printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
@@ -248,22 +248,22 @@ unsigned long long DoOneSimulationFl(SimulationStruct *simulation, unsigned long
       //MCd3D<<<minGridSize, blockSize>>>(DeviceMem);
     }
 
-    CUDA_SAFE_CALL(cudaThreadSynchronize()); // Wait for all threads to finish
+    cudaThreadSynchronize(); // Wait for all threads to finish
     cudastat = cudaGetLastError();           // Check if there was an error
     if (cudastat)
       printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
     // Copy thread_active from device to host
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active,
-                              NUM_THREADS * sizeof(unsigned int),
-                              cudaMemcpyDeviceToHost));
+    cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active,
+               NUM_THREADS * sizeof(unsigned int),
+               cudaMemcpyDeviceToHost);
     threads_active_total = 0;
     for (ii = 0; ii < NUM_THREADS; ii++)
       threads_active_total += HostMem.thread_active[ii];
 
-    CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,
-                              DeviceMem.num_terminated_photons,
-                              sizeof(unsigned long long), cudaMemcpyDeviceToHost));
+    cudaMemcpy(HostMem.num_terminated_photons,
+               DeviceMem.num_terminated_photons,
+               sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
     if (i > 10000) {
       // If we are still running after 10000 steps, something definetly went wrong.
