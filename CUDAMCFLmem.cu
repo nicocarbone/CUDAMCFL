@@ -52,57 +52,58 @@ int InitDCMem(SimulationStruct* sim)
 	const int num_z=(int)((sim->esp)*(double)sim->grid_size);
 	const int fhd_size = num_x * num_y * num_z;
 
+
 	// Copy fhd flag
-	cudaMemcpyToSymbol(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int));
+	cudaMemcpy(fhd_activated_dc,&(sim->fhd_activated),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	// Copy bulk method flag
-	cudaMemcpyToSymbol(bulk_method_dc,&(sim->bulk_method),sizeof(unsigned int));
+	cudaMemcpy(bulk_method_dc,&(sim->bulk_method),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	// Copy time sim flag
-	cudaMemcpyToSymbol(do_temp_sim_dc,&(sim->do_temp_sim),sizeof(unsigned int));
+	cudaMemcpy(do_temp_sim_dc,&(sim->do_temp_sim),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 
 	// Copy det-data to constant device memory
-	cudaMemcpyToSymbol(det_dc,&(sim->det),sizeof(DetStruct));
+	cudaMemcpy(det_dc,&(sim->det),sizeof(DetStruct), cudaMemcpyHostToDevice);
 
 	// Copy inclusion data to constant device memory
-	cudaMemcpyToSymbol(inclusion_dc,&(sim->inclusion),sizeof(IncStruct));
+	cudaMemcpy(inclusion_dc,&(sim->inclusion),sizeof(IncStruct), cudaMemcpyHostToDevice);
 
 	// Copy number of layers to constant device memory
-	cudaMemcpyToSymbol(n_layers_dc,&(sim->n_layers),sizeof(unsigned int));
+	cudaMemcpy(n_layers_dc,&(sim->n_layers),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	// Copy number of bulk descriptors to constant device memory
-	cudaMemcpyToSymbol(n_bulks_dc,&(sim->n_bulks),sizeof(unsigned int));
+	cudaMemcpy(n_bulks_dc,&(sim->n_bulks),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	// Copy start_weight_dc to constant device memory
-	cudaMemcpyToSymbol(start_weight_dc,&(sim->start_weight),sizeof(unsigned int));
+	cudaMemcpy(start_weight_dc,&(sim->start_weight),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	// Copy grid_size_dc to constant device memory
-	cudaMemcpyToSymbol(grid_size_dc,&(sim->grid_size),sizeof(unsigned int));
+	cudaMemcpy(grid_size_dc,&(sim->grid_size),sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	// Copy layer data to constant device memory
-	cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct));
+	cudaMemcpy(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct), cudaMemcpyHostToDevice);
 
 	// Copy bulk data to constant device memory
-	cudaMemcpyToSymbol(bulks_dc,sim->bulks,(sim->n_bulks+2)*sizeof(BulkStruct));
+	cudaMemcpy(bulks_dc,sim->bulks,(sim->n_bulks+2)*sizeof(BulkStruct), cudaMemcpyHostToDevice);
 
 	// Copy num_photons_dc to constant device memory
-	cudaMemcpyToSymbol(num_photons_dc,&(sim->number_of_photons),sizeof(unsigned long long));
+	cudaMemcpy(num_photons_dc,&(sim->number_of_photons),sizeof(unsigned long long), cudaMemcpyHostToDevice);
 
 	// Copy x source position to constant device memory
-	cudaMemcpyToSymbol(xi_dc,&(sim->xi),sizeof(float));
+	cudaMemcpy(xi_dc,&(sim->xi),sizeof(float), cudaMemcpyHostToDevice);
 
 	// Copy y source position to constant device memory
-	cudaMemcpyToSymbol(yi_dc,&(sim->yi),sizeof(float));
+	cudaMemcpy(yi_dc,&(sim->yi),sizeof(float), cudaMemcpyHostToDevice);
 
 	// Copy z source position to constant device memory
-	cudaMemcpyToSymbol(zi_dc,&(sim->zi),sizeof(float));
+	cudaMemcpy(zi_dc,&(sim->zi),sizeof(float), cudaMemcpyHostToDevice);
 
 	// Copy source direction to constant device memory
-	cudaMemcpyToSymbol(dir_dc,&(sim->dir),sizeof(float));
+	cudaMemcpy(dir_dc,&(sim->dir),sizeof(float), cudaMemcpyHostToDevice);
 
 	// Copy esp to constant device memory
-	cudaMemcpyToSymbol(esp_dc,&(sim->esp),sizeof(float));
+	cudaMemcpy(esp_dc,&(sim->esp),sizeof(float), cudaMemcpyHostToDevice);
 
 	return 0;
 
