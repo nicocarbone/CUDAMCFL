@@ -651,8 +651,6 @@ int main(int argc, char *argv[]) {
          (double)(time3 - time1) /CLOCKS_PER_SEC);
   }
 
-  cudaProfilerStop();
-
   //if (Fx != NULL)
   //free(Fx);
   //FreeSimulationStruct(simulations, n_simulations);
