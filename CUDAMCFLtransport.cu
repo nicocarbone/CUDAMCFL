@@ -113,7 +113,7 @@ __global__ void MCd(MemStruct DeviceMem)
 		p.z += p.dz*s;
 
     //Update time of flight
-    p.tof += (unsigned long)(s/C_CMFS);
+    p.tof += (unsigned long)(s*layers_dc[p.layer].n/C_CMFS);
 
     if(p.z>layers_dc[p.layer].z_max)p.z=layers_dc[p.layer].z_max;//needed? TODO
 		if(p.z<layers_dc[p.layer].z_min)p.z=layers_dc[p.layer].z_min;//needed? TODO
@@ -315,7 +315,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
       p.z += p.dz*s;
 
       //Update time of flight
-      p.tof += (unsigned long)(s/C_CMFS);
+      p.tof += (unsigned long)(s*bulks_dc[p.bulkpos].n/C_CMFS);
 
       // Retrieve bulk position
       if(new_bulk!=0 && new_bulk!=last_bulk) {
