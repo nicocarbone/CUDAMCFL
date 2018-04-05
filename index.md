@@ -8,6 +8,7 @@ Broadly speaking, the code developed in the present contribution adds over CUDAM
 * A voxelization of the bulk media, for inhomogeneity description and for photon hitting density storage.
 * The possibility of a isotropic source located anywhere in the medium.
 * Fluorescent sources simulation.
+* [Beta stage] Temporal resolution for absorption simulations: multiple point-like detectors.
 
 ### Research paper
 
