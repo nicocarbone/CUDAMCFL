@@ -78,8 +78,7 @@ __global__ void MCd(MemStruct DeviceMem)
        (inclusion_dc[0].r*inclusion_dc[0].r)) {
       // Inside inclusion
 			if(inclusion_dc[0].mutr!=FLT_MAX)
-				//s = -__logf(rand_MWC_oc(&x,&a))*inclusion_dc[0].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-        s = inclusion_dc[0].mutr;
+				s = -__logf(rand_MWC_oc(&x,&a))*inclusion_dc[0].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
       else
 				s = 2.0f;//temporary, say the step in glass is 100 cm.
 		}
@@ -289,7 +288,6 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
   	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX) {
 			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-      //s = bulks_dc[p.bulkpos].mutr;
 
       new_bulk = p.bulkpos;
 
@@ -336,7 +334,6 @@ __global__ void MCd3D(MemStruct DeviceMem)
 
     }
     else {
-			//s = 100.0f; //temporary, say the step in glass is 100 cm.
       //in_glass=TRUE;
       s = 100.0f;
       new_bulk = MoveToFirstBoundary(&p, p.bulkpos, DeviceMem.bulk_info, s);
