@@ -15,18 +15,19 @@
 */
 
 // DEFINES
-#define NUM_THREADS_PER_BLOCK 256 //128 //512 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
-#define NUM_BLOCKS 10 //10  //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
-#define NUM_THREADS 2560 //2560 //1280
-
-#define NUMSTEPS_GPU 10000
+#define NUM_THREADS_PER_BLOCK 256//256 //128 //512 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
+#define NUM_BLOCKS 128 //10  //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
+#define NUM_THREADS NUM_THREADS_PER_BLOCK*NUM_BLOCKS
+#define NUMSTEPS_GPU 80000
 #define PI 3.141592654f
 #define RPI 0.318309886f
 #define MAX_LAYERS 100
-#define STR_LEN 200
+#define STR_LEN 500
 #define MAX_STEP 14000
 #define TAM_GRILLA 5
 #define RAD_FIB_BAN 0.05
+#define C_CMFS 2.99792E-5 // Speed of light in centimeters per femtosecond
+#define MAX_TEMP_DETS 100 // Max number of temporal detectors in each axis
 
 //#define WEIGHT 0.0001f
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
@@ -62,8 +63,9 @@ typedef struct __align__ (16)
 
 								unsigned int weight; // Photon weight
 								int layer; // Current layer
-								short bulkpos; // Current bulk descriptor
+								unsigned short bulkpos; // Current bulk descriptor
 								unsigned int step; // Step actual
+								unsigned long tof; // Time of flight, fentoseconds
 } PhotonStruct;
 
 typedef struct __align__ (16)
@@ -76,7 +78,21 @@ typedef struct __align__ (16)
 								int ny; // Number of grid elements in y-direction
 								int nz; // Number of grid elements in z-direction TODO: why?
 
+								float x0; // X coordinate origin of detection grid
+								float y0; // X coordinate origin of detection grid
+
 								float sep; // Separacion fibra de detaccion - eje optico TODO: remove.
+
+								float x0_temp_det; //x center of temporal array of detectors
+								float y0_temp_det; //y center of temporal array of detectors
+								unsigned int x_temp_numdets; //Number of temporal detectors in x axis
+								unsigned int y_temp_numdets; //Number of temporal detectors in y axis
+								float x_temp_sepdets; //Separation of temporal detectors in x axis [cm]
+								float y_temp_sepdets; //Separation of temporal detectors in y axis [cm]
+								float temp_det_r; //Temporal detector radius
+								unsigned int temp_rort; //Location of the detector array: 0 reflectance, 1 Transmitance
+								unsigned long temp_bins; //Number of temporal bins
+								unsigned long max_temp; //Maximum temporal value [fs]
 } DetStruct;
 
 typedef struct //__align__(16)
@@ -129,6 +145,8 @@ typedef struct
 								BulkStruct* bulks; // Bulk descriptors
 								IncStruct inclusion; // Inclusion structure
 
+								int grid_size; // Voxel size: 1cm/grid_size
+
 								float esp; // Medium thickness
 
 								float xi; // Source x position
@@ -146,6 +164,8 @@ typedef struct
 								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
 
 								char bulkinfo_filename[STR_LEN]; // external fila containing the bulk information for method 2
+
+								int do_temp_sim; //0: don't do temporal sim, 1: do temporal sim
 
 }SimulationStruct;
 
@@ -167,5 +187,8 @@ typedef struct
 
 								short* bulk_info; // 3D Matrix with a short integer per voxel selecting bulk composition
 
+								unsigned long long* time_xyt; // 3D Matric with the temporal histogram in each detector
 
+								float* tdet_pos_x; // Array with the positions of the time detectors in x axis
+								float* tdet_pos_y; // Array with the positions of the time detectors in y axis
 }MemStruct;

@@ -24,7 +24,7 @@ __global__ void LaunchPhoton_Global(MemStruct);
 __device__ void Spin(PhotonStruct*, float,unsigned long long*,unsigned int*);
 __device__ unsigned int Reflect(PhotonStruct*, int, unsigned long long*, unsigned int*, int);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, unsigned long long*, unsigned int*);
-
+__device__ unsigned int MoveToFirstBoundary(PhotonStruct*, unsigned short, short*, float);
 
 __global__ void MCd(MemStruct DeviceMem)
 {
@@ -47,6 +47,11 @@ __global__ void MCd(MemStruct DeviceMem)
   // Size of output images
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
+
+  // Size of time array
+  const int num_x_tdet = det_dc[0].x_temp_numdets;
+  const int num_y_tdet = det_dc[0].y_temp_numdets;
+  const long num_tbins = det_dc[0].temp_bins;
 
   unsigned long long int x=DeviceMem.x[begin+tx];//coherent
 	unsigned int a=DeviceMem.a[begin+tx];//coherent
@@ -74,14 +79,15 @@ __global__ void MCd(MemStruct DeviceMem)
       // Inside inclusion
 			if(inclusion_dc[0].mutr!=FLT_MAX)
 				s = -__logf(rand_MWC_oc(&x,&a))*inclusion_dc[0].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-			else
+      else
 				s = 2.0f;//temporary, say the step in glass is 100 cm.
 		}
 		else 	{
       // Outside inclusion
 			if(layers_dc[p.layer].mutr!=FLT_MAX)
-				s = -__logf(rand_MWC_oc(&x,&a))*layers_dc[p.layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-			else
+				//s = -__logf(rand_MWC_oc(&x,&a))*layers_dc[p.layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+        s = layers_dc[p.layer].mutr;
+      else
 				s = 2.0f;//temporary, say the step in glass is 100 cm.
 		}
 
@@ -104,6 +110,9 @@ __global__ void MCd(MemStruct DeviceMem)
     p.x += p.dx*s;
 		p.y += p.dy*s;
 		p.z += p.dz*s;
+
+    //Update time of flight
+    p.tof += (unsigned long)(s*layers_dc[p.layer].n/C_CMFS);
 
     if(p.z>layers_dc[p.layer].z_max)p.z=layers_dc[p.layer].z_max;//needed? TODO
 		if(p.z<layers_dc[p.layer].z_min)p.z=layers_dc[p.layer].z_min;//needed? TODO
@@ -137,6 +146,18 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
     				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
     			}
+          if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==0u && p.tof<det_dc[0].max_temp){
+            // Save time value in apropiate bin
+            for (int xpos = 0; xpos < num_x_tdet; xpos++){
+              for (int ypos = 0; ypos < num_y_tdet; ypos++){
+                if (((p.x - DeviceMem.tdet_pos_x[xpos])*(p.x - DeviceMem.tdet_pos_x[xpos]) + (p.y - DeviceMem.tdet_pos_y[ypos])*(p.y - DeviceMem.tdet_pos_y[ypos])) < ((det_dc[0].temp_det_r)*(det_dc[0].temp_det_r))){
+                  // Inside time detector ix + xtnum * (iy + it * ytnum);
+                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+                  if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+                }
+              }
+            }
+          }
           p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
         }
 
@@ -149,6 +170,20 @@ __global__ void MCd(MemStruct DeviceMem)
                   __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
             if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
           }
+          if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==1u && p.tof<det_dc[0].max_temp){
+            // Save time value in apropiate bin
+            for (int xpos = 0; xpos < num_x_tdet; xpos++){
+              for (int ypos = 0; ypos < num_y_tdet; ypos++){
+                if (((p.x - DeviceMem.tdet_pos_x[xpos])*(p.x - DeviceMem.tdet_pos_x[xpos]) + (p.y - DeviceMem.tdet_pos_y[ypos])*(p.y - DeviceMem.tdet_pos_y[ypos])) < ((det_dc[0].temp_det_r)*(det_dc[0].temp_det_r))){
+                  // Inside time detector
+                  index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+                  if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+                }
+              }
+            }
+          }
+
+
 					p.weight = 0; // Set the remaining weight to 0, killing the photon
         }
 			}
@@ -224,6 +259,11 @@ __global__ void MCd3D(MemStruct DeviceMem)
   const float size_x = __fdividef(det_dc[0].dx*__int2float_rn(det_dc[0].nx),2.);
   const float size_y = __fdividef(det_dc[0].dy*__int2float_rn(det_dc[0].ny),2.);
 
+  // Size of time array
+  const int num_x_tdet = det_dc[0].x_temp_numdets;
+  const int num_y_tdet = det_dc[0].y_temp_numdets;
+  const long num_tbins = det_dc[0].temp_bins;
+
   // Last Bulk
   const unsigned short last_bulk = *n_bulks_dc+1;
 
@@ -233,6 +273,7 @@ __global__ void MCd3D(MemStruct DeviceMem)
 	float s;	// step length
 	unsigned int index; // temporal variable to store indexes to arrays
 	unsigned int w; // photon weight
+  //bool in_glass = FALSE;
 
 	PhotonStruct p = DeviceMem.p[begin+tx];
 
@@ -245,55 +286,66 @@ __global__ void MCd3D(MemStruct DeviceMem)
 	for(;ii<NUMSTEPS_GPU;ii++) {
     // Main while loop
 
-  	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX)
+  	if(bulks_dc[p.bulkpos].mutr!=FLT_MAX) {
 			s = -__logf(rand_MWC_oc(&x,&a))*bulks_dc[p.bulkpos].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
-		else
-			//s = 100.0f; //temporary, say the step in glass is 100 cm.
-      s = 2.0f;
+
+      new_bulk = p.bulkpos;
+
+      //int side_scape = 0;
+
+      //Check for upwards reflection/transmission and move to surface
+  		if(p.z+s*p.dz<0.) {
+        new_bulk = 0;
+        //side_scape = 0;
+        s = __fdividef(-p.z,p.dz);
+      }
+
+      //Check for downward reflection/transmission and move to surface
+  		if(p.z+s*p.dz>(*esp_dc)){
+        new_bulk = last_bulk;
+        //side_scape = 0;
+        s = __fdividef((*esp_dc)-p.z,p.dz);
+      }
+
+      // Move photon TODO:here?
+      p.x += p.dx*s;
+      p.y += p.dy*s;
+      p.z += p.dz*s;
+
+      //Update time of flight
+      p.tof += (unsigned long)(s*bulks_dc[p.bulkpos].n/C_CMFS);
+
+      // Retrieve bulk position
+      if(new_bulk!=0 && new_bulk!=last_bulk) {
+        if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){
+          // Inside space of 3D matrix. Calculate index of the current voxel
+          // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
+          index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+                + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
+          new_bulk = DeviceMem.bulk_info[index];
+        }
+        else {
+          // Photon scaped to the sides
+          // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
+          new_bulk = 1;
+        }
+      }
+
+    }
+    else {
+      //in_glass=TRUE;
+      s = 100.0f;
+      new_bulk = MoveToFirstBoundary(&p, p.bulkpos, DeviceMem.bulk_info, s);
+      //printf("chau\n");
+
+    }
 
 		//Check for layer transitions and in case, calculate s
-		new_bulk = p.bulkpos;
 
-    //int side_scape = 0;
-
-    //Check for upwards reflection/transmission and move to surface
-		if(p.z+s*p.dz<0.) {
-      new_bulk = 0;
-      //side_scape = 0;
-      s = __fdividef(-p.z,p.dz);
-    }
-
-    //Check for downward reflection/transmission and move to surface
-		if(p.z+s*p.dz>(*esp_dc)){
-      new_bulk = last_bulk;
-      //side_scape = 0;
-      s = __fdividef((*esp_dc)-p.z,p.dz);
-    }
-
-    // Move photon TODO:here?
-    p.x += p.dx*s;
-    p.y += p.dy*s;
-    p.z += p.dz*s;
 
     //if(p.z>(*esp_dc)) p.z=(*esp_dc);//needed? TODO
 		//if(p.z<0.) p.z=0.;//needed? TODO
-
-    // Retrieve bulk position
-    if(new_bulk!=0 && new_bulk!=last_bulk) {
-      if (fabsf(p.x)<2*(*esp_dc) && fabsf(p.y)<2*(*esp_dc) && p.z<(*esp_dc)){
-        // Inside space of 3D matrix. Calculate index of the current voxel
-        // Use round to zero so there are no over sampled voxels (for ex: (max_x,0,0) and (0,1,0) should not map to the same voxel)
-        index = __float2uint_rz((p.x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-              + num_x * (__float2uint_rz((p.y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
-              + num_y * __float2uint_rz((p.z)*__int2float_rn(*grid_size_dc)));
-        new_bulk = DeviceMem.bulk_info[index];
-      }
-      else {
-        // Photon scaped to the sides
-        // Outside space of 3D matrix, assume inside homogeneous medium (should we assume it is outside the bulk (bulkpos=0)? TODO)
-        new_bulk = 1;
-        }
-    }
 
     unsigned int reflected;
 
@@ -323,6 +375,20 @@ __global__ void MCd3D(MemStruct DeviceMem)
               __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
 				if ((DeviceMem.Rd_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Rd_xy[index], p.weight); // Check for overflow and add atomicall
 				}
+
+      if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==0u && p.tof<det_dc[0].max_temp){
+        // Save time value in apropiate bin
+        for (int xpos = 0; xpos < num_x_tdet; xpos++){
+          for (int ypos = 0; ypos < num_y_tdet; ypos++){
+            if (((p.x - DeviceMem.tdet_pos_x[xpos])*(p.x - DeviceMem.tdet_pos_x[xpos]) + (p.y - DeviceMem.tdet_pos_y[ypos])*(p.y - DeviceMem.tdet_pos_y[ypos])) < ((det_dc[0].temp_det_r)*(det_dc[0].temp_det_r))){
+              // Inside time detector
+              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+              if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+            }
+          }
+        }
+      }
+
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
       s = 0.0f;
     }
@@ -336,6 +402,20 @@ __global__ void MCd3D(MemStruct DeviceMem)
               __float2uint_rz(__fdividef(p.x-det_dc[0].x0+size_x,det_dc[0].dx));
         if ((DeviceMem.Tt_xy[index] + p.weight) < LLONG_MAX) atomicAdd(&DeviceMem.Tt_xy[index], p.weight); // Check for overflow and add atomically
         }
+
+      if (*do_temp_sim_dc==1u && det_dc[0].temp_rort==1u && p.tof<det_dc[0].max_temp){
+        // Save time value in apropiate bin
+        for (int xpos = 0; xpos < num_x_tdet; xpos++){
+          for (int ypos = 0; ypos < num_y_tdet; ypos++){
+            if (((p.x - DeviceMem.tdet_pos_x[xpos])*(p.x - DeviceMem.tdet_pos_x[xpos]) + (p.y - DeviceMem.tdet_pos_y[ypos])*(p.y - DeviceMem.tdet_pos_y[ypos])) < ((det_dc[0].temp_det_r)*(det_dc[0].temp_det_r))){
+              // Inside time detector
+              index = xpos + num_x_tdet*(ypos + num_y_tdet*__float2uint_rz(__fdividef(p.tof, det_dc[0].max_temp)*num_tbins));
+              if (DeviceMem.time_xyt[index] + p.weight < LLONG_MAX) atomicAdd(&DeviceMem.time_xyt[index], p.weight); // Check for overflow and add atomically //TODO why LLONG_MAX?
+            }
+          }
+        }
+      }
+
       p.weight = 0u; // Set the remaining weight to 0, effectively killing the photon
       s = 0.0f;
       }
@@ -464,6 +544,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned in
   }
 
 	p->step= 0;
+  p->tof = 0;
 
   if ((*bulk_method_dc) == 1){
   // Found photon start layer
@@ -616,6 +697,153 @@ __device__ unsigned int Reflect(PhotonStruct* p, int newlb, unsigned long long* 
 		return 0u;
 	}
 
+}
+
+__device__ unsigned int MoveToFirstBoundary(PhotonStruct* p, unsigned short old_bulk, short* bulk_info, float max_s){
+  // Given two bulk postions, initial and final, and the photon direction check for the first change of bulk descriptor in that direction
+
+  // 3D bulk matrix width and height
+  const unsigned int num_x = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
+  const unsigned int num_y = __float2uint_rn(4*(*esp_dc)*__int2float_rn(*grid_size_dc));
+
+  // Set search_step as voxel size [TODO]
+  float search_step = 1/(2*__int2float_rn(*grid_size_dc));
+  float total_move = 0;
+  int index = 1;
+  unsigned short present_bulk=old_bulk;
+
+
+  // Search for next bulk change
+  while (present_bulk == old_bulk && total_move<max_s){
+
+    // Move photon
+    p->x += (p->dx)*search_step;
+    p->y += (p->dy)*search_step;
+    p->z += (p->dz)*search_step;
+
+    //Update time of flight
+    p->tof += (unsigned long)(search_step/C_CMFS);
+
+    //Check for upwards reflection/transmission
+    if(p->z+p->dz*search_step<0.) {
+      present_bulk = 0;
+      index = -1;
+      search_step = __fdividef(-p->z,p->dz);
+    }
+
+    //Check for downward reflection/transmission
+    else if(p->z+p->dz*search_step>(*esp_dc)){
+      present_bulk = *n_bulks_dc+1;
+      index = -1;
+      search_step = __fdividef((*esp_dc)-p->z,p->dz);
+    }
+
+    else if (fabsf(p->x+p->dx*search_step)>=2*(*esp_dc) || fabsf(p->y+p->dy*search_step)>=2*(*esp_dc)){
+      present_bulk=1;
+      index = -1;
+    }
+
+    else {
+    // Calculate index of present bulk
+      index = __float2uint_rz((p->x+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+            + num_x * (__float2uint_rz((p->y+2*(*esp_dc))*__int2float_rn(*grid_size_dc))
+            + num_y * __float2uint_rz((p->z)*__int2float_rn(*grid_size_dc))); //(z * xMax * yMax) + (y * xMax) + x
+      present_bulk = bulk_info[index];
+    }
+
+    total_move += search_step;
+
+  }
+
+  // Set photon postion to boaundary
+  if (index>=0 && present_bulk != old_bulk){
+    //printf("%f %f %f\n", p->x, p->y, p->z);
+
+    // Voxel center position
+    // See: http://stackoverflow.com/questions/7367770/how-to-flatten-or-index-3d-array-in-1d-array
+    int z_grid = index / (num_x * num_y);
+    index -= (z_grid * num_x * num_y);
+    int y_grid = index / num_x;
+    int x_grid = index % num_x;
+
+    float y_voxel = __int2float_rn(y_grid)/(*grid_size_dc) - 2*(*esp_dc) + 1./(2.*(*grid_size_dc));
+    float x_voxel = __int2float_rn(x_grid)/(*grid_size_dc) - 2*(*esp_dc) + 1./(2.*(*grid_size_dc));
+    float z_voxel = __int2float_rn(z_grid)/(*grid_size_dc) + 1./(2.*(*grid_size_dc));
+
+    // As an approximation, lets consider the voxel to be an sphere of r = 1/(2*grid_size_dc))
+    // Move the photon back in the direction of movement, an amount back_step until reaching the boundary of the sphere
+    // TODO: better approximation?
+    // See sage_math source for equation solving
+
+    float r_voxel2 = pow(0.707107*(1/__int2float_rn(*grid_size_dc)),2);
+
+    float pow_dx = p->dx*p->dx;
+    float pow_dy = p->dy*p->dy;
+    float pow_dz = p->dz*p->dz;
+    float pow_px = p->x*p->x;
+    float pow_py = p->y*p->y;
+    float pow_pz = p->z*p->z;
+    float pow_cx = x_voxel*x_voxel;
+    float pow_cy = y_voxel*y_voxel;
+    float pow_cz = z_voxel*z_voxel;
+
+
+    //There are two possible solutions (backwards and forwards until reaching the limit of the voxel)
+    float back_step1 = -(x_voxel*p->dx + y_voxel*p->dy + z_voxel*p->dz - p->dx*p->x - p->dy*p->y - p->dz*p->z +
+          sqrt(2*x_voxel*y_voxel*p->dx*p->dy - (pow_cy + pow_cz)*pow_dx -
+          (pow_cx + pow_cz)*pow_dy - (pow_cx + pow_cy)*pow_dz -
+          (pow_dy + pow_dz)*pow_px - (pow_dx + pow_dz)*pow_py -
+          (pow_dx + pow_dy)*pow_pz + (pow_dx + pow_dy + pow_dz)*r_voxel2 +
+          2*(x_voxel*z_voxel*p->dx + y_voxel*z_voxel*p->dy)*p->dz -
+          2*(y_voxel*p->dx*p->dy - x_voxel*pow_dy + z_voxel*p->dx*p->dz - x_voxel*pow_dz)*p->x +
+          2*(y_voxel*pow_dx - x_voxel*p->dx*p->dy - z_voxel*p->dy*p->dz + y_voxel*pow_dz + p->dx*p->dy*p->x)*p->y +
+          2*(z_voxel*pow_dx + z_voxel*pow_dy + p->dx*p->dz*p->x + p->dy*p->dz*p->y -
+          (x_voxel*p->dx + y_voxel*p->dy)*p->dz)*p->z))/(pow_dx + pow_dy + pow_dz);
+
+    float back_step2 = -(x_voxel*p->dx + y_voxel*p->dy + z_voxel*p->dz - p->dx*p->x - p->dy*p->y - p->dz*p->z -
+          sqrt(2*x_voxel*y_voxel*p->dx*p->dy - (pow_cy + pow_cz)*pow_dx -
+          (pow_cx + pow_cz)*pow_dy - (pow_cx + pow_cy)*pow_dz -
+          (pow_dy + pow_dz)*pow_px - (pow_dx + pow_dz)*pow_py -
+          (pow_dx + pow_dy)*pow_pz + (pow_dx + pow_dy + pow_dz)*r_voxel2 +
+          2*(x_voxel*z_voxel*p->dx + y_voxel*z_voxel*p->dy)*p->dz -
+          2*(y_voxel*p->dx*p->dy - x_voxel*pow_dy + z_voxel*p->dx*p->dz - x_voxel*pow_dz)*p->x +
+          2*(y_voxel*pow_dx - x_voxel*p->dx*p->dy - z_voxel*p->dy*p->dz + y_voxel*pow_dz + p->dx*p->dy*p->x)*p->y +
+          2*(z_voxel*pow_dx + z_voxel*pow_dy + p->dx*p->dz*p->x + p->dy*p->dz*p->y -
+          (x_voxel*p->dx + y_voxel*p->dy)*p->dz)*p->z))/(pow_dx + pow_dy + pow_dz);
+
+
+    // Move assmuning backwards and...
+    float new_px1 = p->x - (p->dx)*back_step1;
+    float new_py1 = p->y - (p->dy)*back_step1;
+    float new_pz1 = p->z - (p->dz)*back_step1;
+
+    float new_px2 = p->x - (p->dx)*back_step2;
+    float new_py2 = p->y - (p->dy)*back_step2;
+    float new_pz2 = p->z - (p->dz)*back_step2;
+
+    // of the two possible solutions for the photons position, choose the one closer to the center of the voxel.
+    if (((new_px1 - x_voxel)*(new_px1 - x_voxel) + (new_py1 - y_voxel)*(new_py1 - y_voxel) + (new_pz1 - z_voxel)*(new_pz1 - z_voxel)) <
+        ((new_px2 - x_voxel)*(new_px2 - x_voxel) + (new_py2 - y_voxel)*(new_py2 - y_voxel) + (new_pz2 - z_voxel)*(new_pz2 - z_voxel))) {
+          p->x = new_px1;
+          p->y = new_py1;
+          p->z = new_pz1;
+
+          //Update time of flight
+          p->tof -= (unsigned long)(back_step1/C_CMFS);
+          }
+        else {
+          p->x = new_px2;
+          p->y = new_py2;
+          p->z = new_pz2;
+
+          //Update time of flight
+          p->tof -= (unsigned long)(back_step2/C_CMFS);
+        }
+
+    //printf("%f %f %f, %f %f %f\n\n", p->x, p->y, p->z, x_voxel, y_voxel, z_voxel);
+  }
+  // Return
+  return present_bulk;
 }
 
 
